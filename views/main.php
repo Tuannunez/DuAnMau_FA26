@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
     <meta charset="UTF-8">
@@ -19,8 +19,29 @@
     <nav class="navbar navbar-expand-xxl bg-light justify-content-center">
         <ul class="navbar-nav">
             <li class="nav-item">
-                <a class="nav-link text-uppercase" href="<?= BASE_URL ?>"><b>Home</b></a>
+                <a class="nav-link text-uppercase" href="<?= BASE_URL ?>"><b>Trang chủ</b></a>
             </li>
+            <?php if (isset($_SESSION['user'])): ?>
+                <li class="nav-item">
+                    <span class="nav-link">
+                        <?= htmlspecialchars($_SESSION['user']['full_name'], ENT_QUOTES, 'UTF-8') ?>
+                        (<?= htmlspecialchars($_SESSION['user']['role'], ENT_QUOTES, 'UTF-8') ?>)
+                    </span>
+                </li>
+                <li class="nav-item">
+                    <form method="post" action="<?= BASE_URL ?>?action=logout">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <button class="nav-link text-uppercase border-0 bg-transparent" type="submit">Đăng xuất</button>
+                    </form>
+                </li>
+            <?php else: ?>
+                <li class="nav-item">
+                    <a class="nav-link text-uppercase" href="<?= BASE_URL ?>?action=login">Đăng nhập</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-uppercase" href="<?= BASE_URL ?>?action=register">Đăng ký</a>
+                </li>
+            <?php endif; ?>
         </ul>
     </nav>
 

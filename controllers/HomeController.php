@@ -4,6 +4,7 @@ class HomeController
 {
     public function index() 
     {
-        require_once PATH_VIEW . 'home.php';
+        $title = 'Trang chủ';
+        require_once PATH_VIEW_MAIN;
     }
 }

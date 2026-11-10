@@ -3,5 +3,9 @@
 $action = $_GET['action'] ?? '/';
 
 match ($action) {
-    '/'         => (new HomeController)->index(),
+    '/' => (new HomeController())->index(),
+    'login' => (new AuthController())->login(),
+    'register' => (new AuthController())->register(),
+    'logout' => (new AuthController())->logout(),
+    default => http_response_code(404),
 };
