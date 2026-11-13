@@ -1,5 +1,32 @@
 const searchForm = document.querySelector("[data-category-search]");
 
+const hero = document.querySelector("#banner");
+
+if (hero instanceof HTMLElement) {
+    const slides = Array.from(hero.querySelectorAll(".shop-hero-image"));
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    if (slides.length > 1 && !reducedMotion.matches) {
+        const transitionDurationMs = 3200;
+        let currentSlide = 0;
+        let timerId;
+
+        const scheduleNextSlide = () => {
+            timerId = window.setTimeout(() => {
+                slides[currentSlide].classList.remove("is-active");
+                slides[currentSlide].setAttribute("aria-hidden", "true");
+                currentSlide = (currentSlide + 1) % slides.length;
+                slides[currentSlide].classList.add("is-active");
+                slides[currentSlide].removeAttribute("aria-hidden");
+
+                timerId = window.setTimeout(scheduleNextSlide, transitionDurationMs);
+            }, 4000);
+        };
+
+        scheduleNextSlide();
+    }
+}
+
 if (searchForm instanceof HTMLFormElement) {
     const searchInput = searchForm.querySelector('input[type="search"]');
     const categories = Array.from(document.querySelectorAll("[data-search-item]"));

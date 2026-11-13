@@ -85,10 +85,22 @@
         <main class="shop-main">
             <section class="shop-hero" id="banner" aria-label="Bộ sưu tập LFC Shop">
                 <img
-                    class="shop-hero-image"
+                    class="shop-hero-image is-active"
                     src="<?= BASE_URL ?>assets/images/banner1.png"
                     alt="LFC Shop - You'll Never Walk Alone, hàng chính hãng, ưu đãi hấp dẫn, giao hàng nhanh"
                     fetchpriority="high">
+                <img
+                    class="shop-hero-image"
+                    src="<?= BASE_URL ?>assets/images/banner2.png"
+                    alt="Bộ sưu tập áo bóng đá Liverpool và đồ lưu niệm"
+                    loading="lazy"
+                    aria-hidden="true">
+                <img
+                    class="shop-hero-image"
+                    src="<?= BASE_URL ?>assets/images/banner3.png"
+                    alt="Bộ sưu tập Liverpool và Adidas"
+                    loading="lazy"
+                    aria-hidden="true">
             </section>
 
             <section class="shop-products" id="shop-products" aria-labelledby="shop-products-title">

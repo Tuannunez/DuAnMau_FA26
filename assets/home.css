@@ -250,20 +250,29 @@ body {
 }
 
 .shop-hero {
+    position: relative;
     overflow: hidden;
     max-width: 1040px;
     margin: 28px auto 0;
+    aspect-ratio: 2000 / 750;
     border-radius: 12px;
     background: #580813;
     box-shadow: 0 14px 36px rgba(37, 17, 20, .12);
 }
 
 .shop-hero-image {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
-    height: auto;
-    aspect-ratio: 2000 / 750;
+    height: 100%;
     object-fit: cover;
+    opacity: 0;
+    transition: opacity 3.2s cubic-bezier(.4, 0, .2, 1);
+}
+
+.shop-hero-image.is-active {
+    opacity: 1;
 }
 
 .shop-products {
@@ -650,7 +659,6 @@ body {
     }
 
     .shop-hero-image {
-        min-height: 132px;
         object-fit: cover;
         object-position: center;
     }
@@ -710,5 +718,11 @@ body {
         justify-content: center;
         gap: 5px;
         padding: 12px 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shop-hero-image {
+        transition: none;
     }
 }
