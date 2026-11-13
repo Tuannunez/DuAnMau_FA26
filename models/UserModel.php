@@ -55,4 +55,34 @@ class UserModel extends BaseModel
             'password' => $passwordHash,
         ]);
     }
+
+    public function getAdminDashboardStats(): array
+    {
+        $statement = $this->pdo->query(
+            'SELECT
+                COUNT(*) AS total_users,
+                COALESCE(SUM(users.status = 1), 0) AS active_users,
+                COALESCE(SUM(users.status <> 1), 0) AS locked_users,
+                COALESCE(SUM(roles.name = \'admin\'), 0) AS admin_users
+             FROM users
+             INNER JOIN roles ON roles.id = users.role_id'
+        );
+
+        return $statement->fetch();
+    }
+
+    public function getLatestUsersForAdmin(int $limit = 10): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT users.id, users.full_name, users.email, users.phone, users.status, roles.name AS role_name
+             FROM users
+             INNER JOIN roles ON roles.id = users.role_id
+             ORDER BY users.id DESC
+             LIMIT :limit'
+        );
+        $statement->bindValue('limit', $limit, PDO::PARAM_INT);
+        $statement->execute();
+
+        return $statement->fetchAll();
+    }
 }

@@ -24,7 +24,10 @@ class AuthController
                     'role' => $user['role_name'],
                 ];
 
-                header('Location: ' . BASE_URL);
+                $redirectUrl = $user['role_name'] === 'admin'
+                    ? BASE_URL . '?action=admin'
+                    : BASE_URL;
+                header('Location: ' . $redirectUrl);
                 exit;
             }
 

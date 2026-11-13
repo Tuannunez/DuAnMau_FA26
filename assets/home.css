@@ -27,6 +27,21 @@ body {
     font-weight: 650;
 }
 
+.shop-admin-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.shop-admin-link small {
+    margin-left: 4px;
+    color: var(--shop-red);
+    font-size: 9px;
+}
+
+.shop-admin-link:hover {
+    color: var(--shop-red);
+}
+
 .shop-account-link,
 .shop-order-placeholder {
     padding: 0;

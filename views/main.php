@@ -68,7 +68,14 @@
                     <span class="shop-account-divider" aria-hidden="true"></span>
                     <?php if (isset($_SESSION['user'])): ?>
                         <span class="shop-account-name">
-                            <?= htmlspecialchars($_SESSION['user']['full_name'], ENT_QUOTES, 'UTF-8') ?>
+                            <?php if (($_SESSION['user']['role'] ?? '') === 'admin'): ?>
+                                <a class="shop-admin-link" href="<?= BASE_URL ?>?action=admin">
+                                    <?= htmlspecialchars($_SESSION['user']['full_name'], ENT_QUOTES, 'UTF-8') ?>
+                                    <small>Quản trị</small>
+                                </a>
+                            <?php else: ?>
+                                <?= htmlspecialchars($_SESSION['user']['full_name'], ENT_QUOTES, 'UTF-8') ?>
+                            <?php endif; ?>
                         </span>
                         <form method="post" action="<?= BASE_URL ?>?action=logout">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
