@@ -71,15 +71,20 @@ class UserModel extends BaseModel
         return $statement->fetch();
     }
 
-    public function getLatestUsersForAdmin(int $limit = 10): array
+    public function getUsersForAdmin(?string $roleName = null, int $limit = 50): array
     {
-        $statement = $this->pdo->prepare(
-            'SELECT users.id, users.full_name, users.email, users.phone, users.status, roles.name AS role_name
-             FROM users
-             INNER JOIN roles ON roles.id = users.role_id
-             ORDER BY users.id DESC
-             LIMIT :limit'
-        );
+        $sql = 'SELECT users.id, users.full_name, users.email, users.phone, users.status, roles.name AS role_name
+                FROM users
+                INNER JOIN roles ON roles.id = users.role_id';
+        if ($roleName !== null) {
+            $sql .= ' WHERE roles.name = :role_name';
+        }
+        $sql .= ' ORDER BY users.id DESC LIMIT :limit';
+
+        $statement = $this->pdo->prepare($sql);
+        if ($roleName !== null) {
+            $statement->bindValue('role_name', $roleName, PDO::PARAM_STR);
+        }
         $statement->bindValue('limit', $limit, PDO::PARAM_INT);
         $statement->execute();
 
