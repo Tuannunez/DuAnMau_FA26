@@ -4,7 +4,9 @@
     --auth-muted: #777b83;
     --auth-line: #e6e7ea;
     --auth-surface: #fff;
-    --auth-soft: #f5f6f7;
+    --auth-accent: #c8102e;
+    --auth-accent-dark: #a50d26;
+    --auth-accent-soft: #fff1f3;
 }
 
 .auth-body {
@@ -14,7 +16,7 @@
     color: var(--auth-ink);
     background:
         radial-gradient(ellipse at 50% 0, rgba(255, 255, 255, .98), transparent 58%),
-        #f2f3f5;
+        #fbf5f6;
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -51,7 +53,7 @@
     place-items: center;
     border-radius: 12px;
     color: #fff;
-    background: #303238;
+    background: var(--auth-accent);
     font-size: 18px;
     font-weight: 700;
 }
@@ -72,7 +74,7 @@
 .auth-kicker {
     display: inline-block;
     margin-bottom: 10px;
-    color: #858991;
+    color: var(--auth-accent);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 1.5px;
@@ -134,9 +136,9 @@
 }
 
 .auth-field input:focus {
-    border-color: #797d85;
+    border-color: var(--auth-accent);
     background: #fff;
-    box-shadow: 0 0 0 3px rgba(91, 96, 105, .11);
+    box-shadow: 0 0 0 3px rgba(200, 16, 46, .1);
 }
 
 .auth-optional {
@@ -152,10 +154,10 @@
     justify-content: center;
     gap: 9px;
     margin-top: 8px;
-    border: 1px solid #303238;
+    border: 1px solid var(--auth-accent);
     border-radius: 10px;
     color: #fff;
-    background: #303238;
+    background: var(--auth-accent);
     font: inherit;
     font-size: 14px;
     font-weight: 600;
@@ -165,14 +167,15 @@
 
 .auth-submit:hover {
     transform: translateY(-1px);
-    background: #484b52;
-    box-shadow: 0 6px 16px rgba(32, 33, 36, .14);
+    border-color: var(--auth-accent-dark);
+    background: var(--auth-accent-dark);
+    box-shadow: 0 6px 16px rgba(200, 16, 46, .18);
 }
 
 .auth-submit:focus-visible,
 .auth-brand:focus-visible,
 .auth-switch a:focus-visible {
-    outline: 3px solid rgba(91, 96, 105, .35);
+    outline: 3px solid rgba(200, 16, 46, .35);
     outline-offset: 3px;
 }
 
@@ -184,7 +187,7 @@
 }
 
 .auth-switch a {
-    color: #303238;
+    color: var(--auth-accent);
     font-weight: 650;
     text-decoration: none;
 }
