@@ -2,6 +2,57 @@
 
 class ProductModel extends BaseModel
 {
+    public function getAvailableForStore(?int $categoryId = null): array
+    {
+        $sql =
+            'SELECT products.id, products.category_id, products.name, products.slug, products.sku,
+                    products.description, products.price, products.stock, products.image_url,
+                    categories.name AS category_name,
+                    (
+                        SELECT product_images.image_url
+                        FROM product_images
+                        WHERE product_images.product_id = products.id
+                        ORDER BY product_images.sort_order, product_images.id
+                        LIMIT 1
+                    ) AS additional_image
+             FROM products
+             LEFT JOIN categories ON categories.id = products.category_id
+             WHERE products.status = 1';
+        $parameters = [];
+        if ($categoryId !== null) {
+            $sql .= ' AND products.category_id = :category_id';
+            $parameters['category_id'] = $categoryId;
+        }
+        $sql .= ' ORDER BY products.id DESC';
+
+        $statement = $this->pdo->prepare($sql);
+        $statement->execute($parameters);
+        return $statement->fetchAll();
+    }
+
+    public function getStoreCategories(): array
+    {
+        $statement = $this->pdo->query(
+            'SELECT id, name
+             FROM categories
+             WHERE status = 1
+             ORDER BY categories.name'
+        );
+
+        return $statement->fetchAll();
+    }
+
+    public function getStoreCategory(int $id): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT id, name FROM categories WHERE id = :id AND status = 1 LIMIT 1'
+        );
+        $statement->execute(['id' => $id]);
+        $category = $statement->fetch();
+
+        return $category ?: null;
+    }
+
     public function getAll(): array
     {
         $statement = $this->pdo->query(

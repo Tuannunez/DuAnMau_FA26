@@ -13,8 +13,8 @@
     <?php if ($isAuthPage): ?>
         <link href="<?= BASE_URL ?>assets/auth.css" rel="stylesheet">
     <?php elseif ($isHomePage): ?>
-        <link href="<?= BASE_URL ?>assets/home.css" rel="stylesheet">
-        <script src="<?= BASE_URL ?>assets/home.js" defer></script>
+        <link href="<?= BASE_URL ?>assets/home.css?v=<?= filemtime(PATH_ROOT . 'assets/home.css') ?>" rel="stylesheet">
+        <script src="<?= BASE_URL ?>assets/home.js?v=<?= filemtime(PATH_ROOT . 'assets/home.js') ?>" defer></script>
     <?php endif; ?>
 </head>
 
@@ -49,10 +49,18 @@
                 </a>
 
                 <nav class="shop-nav" aria-label="Điều hướng chính">
-                    <a class="shop-nav-link is-active" href="#shop-products">Sản phẩm</a>
-                    <a class="shop-nav-link" href="#football-shirts">Áo bóng đá</a>
-                    <a class="shop-nav-link" href="#football-boots">Giày bóng đá</a>
-                    <a class="shop-nav-link" href="#souvenirs">Đồ lưu niệm</a>
+                    <a
+                        class="shop-nav-link <?= empty($isCatalogPage) ? 'is-active' : '' ?>"
+                        href="<?= BASE_URL ?>">
+                        Trang chủ
+                    </a>
+                    <?php foreach ($categories as $category): ?>
+                        <a
+                            class="shop-nav-link <?= isset($selectedCategoryId) && $selectedCategoryId === (int) $category['id'] ? 'is-active' : '' ?>"
+                            href="<?= BASE_URL ?>?action=category&amp;id=<?= (int) $category['id'] ?>">
+                            <?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?>
+                        </a>
+                    <?php endforeach; ?>
                 </nav>
 
                 <form class="shop-search" role="search" data-category-search>
@@ -90,56 +98,87 @@
         </header>
 
         <main class="shop-main">
-            <section class="shop-hero" id="banner" aria-label="Bộ sưu tập LFC Shop">
-                <img
-                    class="shop-hero-image is-active"
-                    src="<?= BASE_URL ?>assets/images/banner1.png"
-                    alt="LFC Shop - You'll Never Walk Alone, hàng chính hãng, ưu đãi hấp dẫn, giao hàng nhanh"
-                    fetchpriority="high">
-                <img
-                    class="shop-hero-image"
-                    src="<?= BASE_URL ?>assets/images/banner2.png"
-                    alt="Bộ sưu tập áo bóng đá Liverpool và đồ lưu niệm"
-                    loading="lazy"
-                    aria-hidden="true">
-                <img
-                    class="shop-hero-image"
-                    src="<?= BASE_URL ?>assets/images/banner3.png"
-                    alt="Bộ sưu tập Liverpool và Adidas"
-                    loading="lazy"
-                    aria-hidden="true">
-            </section>
+            <?php if (empty($isCatalogPage)): ?>
+                <section class="shop-hero" id="banner" aria-label="Bộ sưu tập LFC Shop">
+                    <img
+                        class="shop-hero-image is-active"
+                        src="<?= BASE_URL ?>assets/images/banner1.png"
+                        alt="LFC Shop - You'll Never Walk Alone, hàng chính hãng, ưu đãi hấp dẫn, giao hàng nhanh"
+                        fetchpriority="high">
+                    <img
+                        class="shop-hero-image"
+                        src="<?= BASE_URL ?>assets/images/banner2.png"
+                        alt="Bộ sưu tập áo bóng đá Liverpool và đồ lưu niệm"
+                        loading="lazy"
+                        aria-hidden="true">
+                    <img
+                        class="shop-hero-image"
+                        src="<?= BASE_URL ?>assets/images/banner3.png"
+                        alt="Bộ sưu tập Liverpool và Adidas"
+                        loading="lazy"
+                        aria-hidden="true">
+                </section>
+            <?php endif; ?>
 
             <section class="shop-products" id="shop-products" aria-labelledby="shop-products-title">
                 <div class="shop-section-heading">
                     <div>
                         <span class="shop-section-kicker">DÀNH CHO CÁC REDS</span>
-                        <h1 id="shop-products-title">Khám phá sản phẩm</h1>
+                        <h1 id="shop-products-title"><?= htmlspecialchars(!empty($isCatalogPage) ? $title : 'Khám phá sản phẩm', ENT_QUOTES, 'UTF-8') ?></h1>
                     </div>
                     <p class="shop-search-status" data-search-status aria-live="polite"></p>
                 </div>
 
-                <div class="shop-category-grid">
-                    <article class="shop-category-card" id="football-shirts" data-search-item data-search-terms="áo bóng đá áo Liverpool jersey áo đấu">
-                        <span class="shop-category-number">01 / COLLECTION</span>
-                        <h2>Áo bóng đá</h2>
-                        <p>Bộ sưu tập áo dành cho những trái tim luôn hướng về Anfield.</p>
-                        <span class="shop-category-note">Danh mục sắp ra mắt</span>
-                    </article>
-                    <article class="shop-category-card shop-category-card-dark" id="football-boots" data-search-item data-search-terms="giày bóng đá giày đá banh football boots">
-                        <span class="shop-category-number">02 / COLLECTION</span>
-                        <h2>Giày bóng đá</h2>
-                        <p>Sẵn sàng cho trận đấu tiếp theo với lựa chọn phù hợp phong cách của bạn.</p>
-                        <span class="shop-category-note">Danh mục sắp ra mắt</span>
-                    </article>
-                    <article class="shop-category-card shop-category-card-souvenir" id="souvenirs" data-search-item data-search-terms="đồ lưu niệm quà tặng phụ kiện khăn cốc móc khóa Liverpool">
-                        <span class="shop-category-number">03 / COLLECTION</span>
-                        <h2>Đồ lưu niệm</h2>
-                        <p>Phụ kiện và quà tặng mang sắc đỏ dành cho các cổ động viên Liverpool.</p>
-                        <span class="shop-category-note">Danh mục sắp ra mắt</span>
-                    </article>
-                    <p class="shop-search-empty" data-search-empty hidden>Không tìm thấy danh mục phù hợp.</p>
-                </div>
+                <?php if ($products === []): ?>
+                    <p class="shop-search-empty">Hiện chưa có sản phẩm đang bán.</p>
+                <?php else: ?>
+                    <div class="shop-product-grid" data-product-list>
+                        <?php foreach ($products as $product): ?>
+                            <?php
+                            $searchTerms = implode(' ', [
+                                $product['name'],
+                                $product['category_name'] ?? '',
+                                $product['sku'],
+                                $product['description'] ?? '',
+                            ]);
+                            ?>
+                            <article
+                                class="shop-product-card"
+                                data-product-card
+                                data-category-id="<?= (int) ($product['category_id'] ?? 0) ?>"
+                                data-search-terms="<?= htmlspecialchars($searchTerms, ENT_QUOTES, 'UTF-8') ?>">
+                                <div class="shop-product-image">
+                                    <?php if (!empty($product['image_url'])): ?>
+                                        <img
+                                            src="<?= htmlspecialchars($product['image_url'], ENT_QUOTES, 'UTF-8') ?>"
+                                            alt="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?>"
+                                            loading="lazy">
+                                    <?php else: ?>
+                                        <span>Chưa có hình ảnh</span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($product['additional_image'])): ?>
+                                        <img
+                                            class="shop-product-image-secondary"
+                                            src="<?= htmlspecialchars($product['additional_image'], ENT_QUOTES, 'UTF-8') ?>"
+                                            alt="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?> - ảnh phụ"
+                                            loading="lazy">
+                                    <?php endif; ?>
+                                </div>
+                                <div class="shop-product-info">
+                                    <?php if (!empty($product['category_name'])): ?>
+                                        <span class="shop-product-category"><?= htmlspecialchars($product['category_name'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <?php endif; ?>
+                                    <h2><?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?></h2>
+                                    <p class="shop-product-price"><?= number_format((float) $product['price'], 0, ',', '.') ?> ₫</p>
+                                    <p class="shop-product-stock">
+                                        <?= (int) $product['stock'] > 0 ? 'Còn ' . (int) $product['stock'] . ' sản phẩm' : 'Tạm hết hàng' ?>
+                                    </p>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                        <p class="shop-search-empty" data-search-empty hidden>Không tìm thấy sản phẩm phù hợp.</p>
+                    </div>
+                <?php endif; ?>
             </section>
 
             <section class="shop-highlights" aria-label="Cam kết của LFC Shop">

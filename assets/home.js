@@ -29,46 +29,48 @@ if (hero instanceof HTMLElement) {
 
 if (searchForm instanceof HTMLFormElement) {
     const searchInput = searchForm.querySelector('input[type="search"]');
-    const categories = Array.from(document.querySelectorAll("[data-search-item]"));
+    const products = Array.from(document.querySelectorAll("[data-product-card]"));
     const emptyMessage = document.querySelector("[data-search-empty]");
     const statusMessage = document.querySelector("[data-search-status]");
 
-    if (searchInput instanceof HTMLInputElement && emptyMessage instanceof HTMLElement) {
+    if (searchInput instanceof HTMLInputElement && products.length > 0) {
         const normalize = (value) => value
             .toLocaleLowerCase("vi")
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "")
             .replace(/đ/g, "d");
 
-        const filterCategories = () => {
+        const filterProducts = () => {
             const query = normalize(searchInput.value.trim());
             let visibleCount = 0;
 
-            categories.forEach((category) => {
-                const terms = normalize(category.dataset.searchTerms || category.textContent || "");
+            products.forEach((product) => {
+                const terms = normalize(product.dataset.searchTerms || product.textContent || "");
                 const isMatch = query === "" || terms.includes(query);
-                category.hidden = !isMatch;
+                product.hidden = !isMatch;
 
                 if (isMatch) {
                     visibleCount += 1;
                 }
             });
 
-            emptyMessage.hidden = visibleCount > 0;
+            if (emptyMessage instanceof HTMLElement) {
+                emptyMessage.hidden = visibleCount > 0;
+            }
 
             if (statusMessage instanceof HTMLElement) {
                 statusMessage.textContent = query === ""
                     ? ""
                     : visibleCount === 1
-                        ? "Tìm thấy 1 danh mục"
-                        : `Tìm thấy ${visibleCount} danh mục`;
+                        ? "Tìm thấy 1 sản phẩm"
+                        : `Tìm thấy ${visibleCount} sản phẩm`;
             }
         };
 
-        searchInput.addEventListener("input", filterCategories);
+        searchInput.addEventListener("input", filterProducts);
         searchForm.addEventListener("submit", (event) => {
             event.preventDefault();
-            filterCategories();
+            filterProducts();
             document.querySelector("#shop-products")?.scrollIntoView({ behavior: "smooth" });
         });
     }

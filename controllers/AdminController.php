@@ -96,6 +96,12 @@ class AdminController
                         $uploadedImages = [];
                         try {
                             $uploadedImages = $this->storeProductUploads();
+                            if ($editingProductId === null
+                                && !isset($uploadedImages['image_1'])
+                                && isset($uploadedImages['image_2'])) {
+                                $uploadedImages['image_1'] = $uploadedImages['image_2'];
+                                unset($uploadedImages['image_2']);
+                            }
                             $productData = $this->productData(
                                 $productForm,
                                 $this->uniqueProductSlug($productModel, $productForm['name'], $editingProductId),
