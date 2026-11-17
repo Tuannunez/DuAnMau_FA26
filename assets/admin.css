@@ -481,6 +481,189 @@
     text-align: center;
 }
 
+.admin-product-section {
+    display: grid;
+    gap: 18px;
+}
+
+.admin-feedback {
+    margin: 0;
+    padding: 12px 15px;
+    border-radius: 7px;
+    font-size: 12px;
+}
+
+.admin-feedback-success {
+    color: #277347;
+    background: #eaf7ef;
+}
+
+.admin-feedback-error {
+    color: #a24d3c;
+    background: #fff0ec;
+}
+
+.admin-product-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 20px;
+}
+
+.admin-product-form label {
+    display: grid;
+    gap: 6px;
+    color: #555760;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.admin-product-form input,
+.admin-product-form select,
+.admin-product-form textarea {
+    width: 100%;
+    min-height: 38px;
+    padding: 9px 10px;
+    border: 1px solid #dedfe4;
+    border-radius: 6px;
+    color: var(--admin-ink);
+    background: #fff;
+    font: inherit;
+    font-size: 12px;
+}
+
+.admin-product-form textarea {
+    resize: vertical;
+}
+
+.admin-product-form input[type="file"] {
+    min-height: auto;
+    padding: 8px;
+}
+
+.admin-product-form label small {
+    color: var(--admin-muted);
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.admin-product-image-preview {
+    width: 110px;
+    height: 110px;
+    border: 1px solid var(--admin-line);
+    border-radius: 7px;
+    object-fit: cover;
+}
+
+.admin-product-form input:focus,
+.admin-product-form select:focus,
+.admin-product-form textarea:focus {
+    border-color: var(--admin-red);
+    outline: 2px solid rgba(200, 16, 46, .12);
+}
+
+.admin-product-form-wide {
+    grid-column: 1 / -1;
+}
+
+.admin-product-form-actions,
+.admin-product-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.admin-button {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    border: 1px solid var(--admin-red);
+    border-radius: 6px;
+    color: #fff;
+    background: var(--admin-red);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.admin-button:hover {
+    background: var(--admin-red-dark);
+}
+
+.admin-button-secondary {
+    color: #5f626b;
+    border-color: #dedfe4;
+    background: #fff;
+}
+
+.admin-button-secondary:hover {
+    color: var(--admin-ink);
+    background: #f7f7f9;
+}
+
+.admin-product-table {
+    white-space: normal;
+}
+
+.admin-product-table th:last-child,
+.admin-product-table td:last-child {
+    text-align: right;
+}
+
+.admin-product-table td:last-child {
+    min-width: 115px;
+}
+
+.admin-product-name {
+    display: flex;
+    min-width: 150px;
+    align-items: center;
+    gap: 8px;
+    color: #34353a;
+}
+
+.admin-product-name img {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 5px;
+    object-fit: cover;
+}
+
+.admin-product-actions form {
+    margin: 0;
+}
+
+.admin-product-actions {
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+.admin-product-edit,
+.admin-product-delete {
+    padding: 0;
+    border: 0;
+    color: var(--admin-red);
+    background: transparent;
+    font: inherit;
+    font-size: 10px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.admin-product-delete {
+    color: #a24d3c;
+}
+
+.admin-product-edit:hover,
+.admin-product-delete:hover {
+    text-decoration: underline;
+}
+
 .admin-module-list {
     display: flex;
     flex-direction: column;
@@ -767,5 +950,14 @@
     .admin-table td {
         padding-right: 12px;
         padding-left: 12px;
+    }
+
+    .admin-product-form {
+        grid-template-columns: 1fr;
+        padding: 15px;
+    }
+
+    .admin-product-form-wide {
+        grid-column: auto;
     }
 }

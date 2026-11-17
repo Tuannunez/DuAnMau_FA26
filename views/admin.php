@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> | TUAN LFC SHOP Admin</title>
-    <link href="<?= BASE_URL ?>assets/admin.css" rel="stylesheet">
+    <link href="<?= BASE_URL ?>assets/admin.css?v=<?= filemtime(PATH_ROOT . 'assets/admin.css') ?>" rel="stylesheet">
 </head>
 
 <body class="admin-body">
@@ -29,7 +29,7 @@
                         <?= $section === $key ? 'aria-current="page"' : '' ?>>
                         <span class="admin-nav-icon" aria-hidden="true"><?= htmlspecialchars($item['icon'], ENT_QUOTES, 'UTF-8') ?></span>
                         <span><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                        <?php if (in_array($key, ['orders', 'products', 'categories', 'promotions', 'reviews'], true)): ?>
+                        <?php if (in_array($key, ['orders', 'categories', 'promotions', 'reviews'], true)): ?>
                             <span class="admin-nav-soon">Sắp có</span>
                         <?php endif; ?>
                     </a>
@@ -148,7 +148,7 @@
                                     <a href="<?= BASE_URL ?>?action=admin&amp;section=<?= urlencode($module) ?>">
                                         <span><?= htmlspecialchars($navigation[$module]['icon'], ENT_QUOTES, 'UTF-8') ?></span>
                                         <?= htmlspecialchars($navigation[$module]['label'], ENT_QUOTES, 'UTF-8') ?>
-                                        <small>Chưa có dữ liệu</small>
+                                        <small><?= $module === 'products' ? 'Quản lý sản phẩm' : 'Chưa có dữ liệu' ?></small>
                                     </a>
                                 <?php endforeach; ?>
                             </div>
@@ -186,6 +186,12 @@
                             </div>
                         <?php endif; ?>
                     </section>
+                <?php elseif ($section === 'products'): ?>
+                    <?php if ($showProductForm): ?>
+                        <?php require PATH_VIEW . 'partials/admin-product-form.php'; ?>
+                    <?php else: ?>
+                        <?php require PATH_VIEW . 'partials/admin-products.php'; ?>
+                    <?php endif; ?>
                 <?php elseif ($section === 'settings'): ?>
                     <section class="admin-panel admin-settings-panel" aria-labelledby="settings-title">
                         <div class="admin-panel-heading">
