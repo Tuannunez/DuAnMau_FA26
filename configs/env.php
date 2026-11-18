@@ -21,6 +21,12 @@ define('DB_PORT',     '3306');
 define('DB_USERNAME', 'root');
 define('DB_PASSWORD', '');
 define('DB_NAME',     'duanmau_fa26');
+$paymentLocalConfigPath = PATH_ROOT . 'configs/payment.local.php';
+$paymentLocalConfig = is_file($paymentLocalConfigPath) ? require $paymentLocalConfigPath : [];
+define('BANK_TRANSFER_BANK_NAME', getenv('BANK_TRANSFER_BANK_NAME') ?: ($paymentLocalConfig['bank_name'] ?? ''));
+define('BANK_TRANSFER_BANK_BIN', getenv('BANK_TRANSFER_BANK_BIN') ?: ($paymentLocalConfig['bank_bin'] ?? ''));
+define('BANK_TRANSFER_ACCOUNT_NUMBER', getenv('BANK_TRANSFER_ACCOUNT_NUMBER') ?: ($paymentLocalConfig['account_number'] ?? ''));
+define('BANK_TRANSFER_ACCOUNT_HOLDER', getenv('BANK_TRANSFER_ACCOUNT_HOLDER') ?: ($paymentLocalConfig['account_holder'] ?? ''));
 define('DB_OPTIONS', [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

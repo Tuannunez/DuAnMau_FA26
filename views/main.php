@@ -73,7 +73,7 @@ foreach (($_SESSION['cart'] ?? []) as $cartVariants) {
                     <?php endforeach; ?>
                 </nav>
 
-                <?php if (empty($isProductDetail) && empty($isCartPage) && empty($isCheckoutPage)): ?>
+                <?php if (empty($isProductDetail) && empty($isCartPage) && empty($isCheckoutPage) && empty($isOrdersPage)): ?>
                     <form class="shop-search" role="search" data-category-search>
                         <label class="visually-hidden" for="shop-search-input">Tìm kiếm sản phẩm</label>
                         <input id="shop-search-input" type="search" placeholder="Tìm kiếm..." autocomplete="off">
@@ -84,6 +84,8 @@ foreach (($_SESSION['cart'] ?? []) as $cartVariants) {
                 <?php endif; ?>
 
                 <div class="shop-account-actions">
+                    <a class="shop-cart-link" href="<?= BASE_URL ?>?action=orders">Đơn hàng</a>
+                    <span class="shop-account-divider" aria-hidden="true"></span>
                     <a class="shop-cart-link" href="<?= BASE_URL ?>?action=cart">
                         Giỏ hàng <span class="shop-cart-count"><?= $cartItemCount ?></span>
                     </a>
@@ -118,6 +120,10 @@ foreach (($_SESSION['cart'] ?? []) as $cartVariants) {
                 <?php require PATH_VIEW . 'partials/store-cart.php'; ?>
             <?php elseif (!empty($isCheckoutPage)): ?>
                 <?php require PATH_VIEW . 'partials/store-checkout.php'; ?>
+            <?php elseif (!empty($isOrdersPage) && isset($order)): ?>
+                <?php require PATH_VIEW . 'partials/store-order-detail.php'; ?>
+            <?php elseif (!empty($isOrdersPage)): ?>
+                <?php require PATH_VIEW . 'partials/store-orders.php'; ?>
             <?php else: ?>
             <?php if (empty($isCatalogPage)): ?>
                 <section class="shop-hero" id="banner" aria-label="Bộ sưu tập LFC Shop">
@@ -206,7 +212,7 @@ foreach (($_SESSION['cart'] ?? []) as $cartVariants) {
             </section>
             <?php endif; ?>
 
-            <?php if (empty($isCartPage) && empty($isCheckoutPage)): ?>
+            <?php if (empty($isCartPage) && empty($isCheckoutPage) && empty($isOrdersPage)): ?>
             <section class="shop-highlights" aria-label="Cam kết của LFC Shop">
                 <article class="shop-highlight">
                     <span class="shop-highlight-icon" aria-hidden="true">01</span>

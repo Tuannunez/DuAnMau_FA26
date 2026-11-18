@@ -20,7 +20,7 @@ class OrderModel extends BaseModel
     {
         $sql =
             'SELECT orders.id, orders.order_code, orders.recipient_name, orders.recipient_phone,
-                    orders.total_amount, orders.payment_status, orders.status, orders.created_at,
+                    orders.total_amount, orders.payment_method, orders.payment_status, orders.status, orders.created_at,
                     (SELECT COUNT(*) FROM order_items WHERE order_items.order_id = orders.id) AS item_count
              FROM orders';
         $parameters = [];
@@ -64,10 +64,100 @@ class OrderModel extends BaseModel
         return $statement->fetchAll();
     }
 
-    public function createCustomerOrder(array $customer, array $items, ?int $userId): string
+    public function getCustomerOrders(?int $userId, array $guestOrderCodes): array
+    {
+        [$accessCondition, $parameters] = $this->customerAccessCondition($userId, $guestOrderCodes);
+        if ($accessCondition === '') {
+            return [];
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT orders.id, orders.order_code, orders.total_amount, orders.payment_method,
+                    orders.payment_status, orders.status, orders.created_at,
+                    (SELECT COUNT(*) FROM order_items WHERE order_items.order_id = orders.id) AS item_count
+             FROM orders
+             WHERE ' . $accessCondition . '
+             ORDER BY orders.created_at DESC, orders.id DESC'
+        );
+        $statement->execute($parameters);
+
+        return $statement->fetchAll();
+    }
+
+    public function findCustomerOrder(string $orderCode, ?int $userId, array $guestOrderCodes): ?array
+    {
+        [$accessCondition, $parameters] = $this->customerAccessCondition($userId, $guestOrderCodes);
+        if ($accessCondition === '') {
+            return null;
+        }
+        $parameters['order_code'] = $orderCode;
+
+        $statement = $this->pdo->prepare(
+            'SELECT id, order_code, recipient_name, recipient_email, recipient_phone,
+                    shipping_address, subtotal, discount_amount, total_amount, payment_method,
+                    payment_status, status, note, created_at, updated_at
+             FROM orders
+             WHERE order_code = :order_code AND (' . $accessCondition . ')
+             LIMIT 1'
+        );
+        $statement->execute($parameters);
+        $order = $statement->fetch();
+
+        return $order ?: null;
+    }
+
+    public function deleteCustomerOrder(string $orderCode, ?int $userId, array $guestOrderCodes): bool
+    {
+        [$accessCondition, $parameters] = $this->customerAccessCondition($userId, $guestOrderCodes);
+        if ($accessCondition === '') {
+            return false;
+        }
+
+        $this->pdo->beginTransaction();
+        try {
+            $parameters['order_code'] = $orderCode;
+            $statement = $this->pdo->prepare(
+                'SELECT id
+                 FROM orders
+                 WHERE order_code = :order_code
+                   AND status IN (\'completed\', \'cancelled\')
+                   AND (' . $accessCondition . ')
+                 FOR UPDATE'
+            );
+            $statement->execute($parameters);
+            $orderId = $statement->fetchColumn();
+            if ($orderId === false) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $itemsStatement = $this->pdo->prepare('DELETE FROM order_items WHERE order_id = :order_id');
+            $itemsStatement->execute(['order_id' => $orderId]);
+            $orderStatement = $this->pdo->prepare(
+                'DELETE FROM orders WHERE id = :id AND status IN (\'completed\', \'cancelled\')'
+            );
+            $orderStatement->execute(['id' => $orderId]);
+            if ($orderStatement->rowCount() !== 1) {
+                throw new RuntimeException('Đơn hàng đã thay đổi trạng thái, vui lòng tải lại trang.');
+            }
+
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
+    public function createCustomerOrder(array $customer, array $items, ?int $userId, string $paymentMethod): string
     {
         if ($items === []) {
             throw new InvalidArgumentException('Giỏ hàng đang trống.');
+        }
+        if (!in_array($paymentMethod, ['cod', 'bank_transfer'], true)) {
+            throw new InvalidArgumentException('Phương thức thanh toán không hợp lệ.');
         }
 
         $this->pdo->beginTransaction();
@@ -132,7 +222,7 @@ class OrderModel extends BaseModel
                 'shipping_address' => $customer['address'],
                 'subtotal' => $subtotal,
                 'total_amount' => $subtotal,
-                'payment_method' => 'cod',
+                'payment_method' => $paymentMethod,
                 'payment_status' => 'unpaid',
                 'status' => 'pending',
                 'note' => $customer['note'] === '' ? null : $customer['note'],
@@ -203,5 +293,31 @@ class OrderModel extends BaseModel
     public static function paymentStatuses(): array
     {
         return self::PAYMENT_STATUSES;
+    }
+
+    private function customerAccessCondition(?int $userId, array $guestOrderCodes): array
+    {
+        $conditions = [];
+        $parameters = [];
+        if ($userId !== null && $userId > 0) {
+            $conditions[] = 'orders.user_id = :customer_user_id';
+            $parameters['customer_user_id'] = $userId;
+        }
+
+        $guestOrderCodes = array_values(array_unique(array_filter(
+            $guestOrderCodes,
+            static fn($code): bool => is_string($code) && preg_match('/^DH[0-9]{14}[A-F0-9]{6}$/', $code)
+        )));
+        if ($guestOrderCodes !== []) {
+            $placeholders = [];
+            foreach ($guestOrderCodes as $index => $code) {
+                $placeholder = 'guest_order_' . $index;
+                $placeholders[] = ':' . $placeholder;
+                $parameters[$placeholder] = $code;
+            }
+            $conditions[] = 'orders.order_code IN (' . implode(', ', $placeholders) . ')';
+        }
+
+        return [$conditions === [] ? '' : '(' . implode(' OR ', $conditions) . ')', $parameters];
     }
 }

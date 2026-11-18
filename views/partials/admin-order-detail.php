@@ -11,6 +11,10 @@ $paymentStatusLabels = [
     'paid' => 'Đã thanh toán',
     'refunded' => 'Đã hoàn tiền',
 ];
+$paymentMethodLabels = [
+    'cod' => 'Thanh toán khi nhận hàng',
+    'bank_transfer' => 'Chuyển khoản ngân hàng',
+];
 ?>
 
 <section class="admin-product-section">
@@ -50,7 +54,7 @@ $paymentStatusLabels = [
                     <div><dt>Tạm tính</dt><dd><?= number_format((float) $order['subtotal'], 0, ',', '.') ?> ₫</dd></div>
                     <div><dt>Giảm giá</dt><dd><?= number_format((float) $order['discount_amount'], 0, ',', '.') ?> ₫</dd></div>
                     <div><dt>Tổng thanh toán</dt><dd><strong><?= number_format((float) $order['total_amount'], 0, ',', '.') ?> ₫</strong></dd></div>
-                    <div><dt>Phương thức</dt><dd><?= htmlspecialchars($order['payment_method'], ENT_QUOTES, 'UTF-8') ?></dd></div>
+                    <div><dt>Phương thức</dt><dd><?= htmlspecialchars($paymentMethodLabels[$order['payment_method']] ?? $order['payment_method'], ENT_QUOTES, 'UTF-8') ?></dd></div>
                     <div><dt>Tài khoản</dt><dd><?= htmlspecialchars($order['account_name'] ?? 'Khách vãng lai', ENT_QUOTES, 'UTF-8') ?></dd></div>
                 </dl>
             </section>

@@ -350,6 +350,54 @@ body {
     margin-top: 8px;
 }
 
+.shop-checkout-product {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 11px;
+}
+
+.shop-checkout-product-image {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    flex: 0 0 58px;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 5px;
+    background: var(--shop-bg);
+    color: var(--shop-muted);
+    font-size: 9px;
+    text-align: center;
+}
+
+.shop-checkout-product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.shop-checkout-product-name {
+    display: grid;
+    gap: 3px;
+    overflow-wrap: anywhere;
+}
+
+.shop-checkout-product-name strong {
+    color: var(--shop-ink);
+    font-weight: 650;
+}
+
+.shop-checkout-product-name small {
+    color: var(--shop-muted);
+    font-size: 11px;
+}
+
+.shop-checkout-product-total {
+    flex: 0 0 auto;
+    color: var(--shop-ink);
+}
+
 .shop-cart-empty,
 .shop-order-success {
     padding: 36px;
@@ -371,6 +419,337 @@ body {
 
 .shop-checkout-form .shop-purchase-button {
     margin-top: 8px;
+}
+
+.shop-payment-methods {
+    display: grid;
+    gap: 10px;
+    margin: 10px 0 4px;
+    padding: 0;
+    border: 0;
+}
+
+.shop-payment-methods legend {
+    margin-bottom: 4px;
+    color: #42444a;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.shop-payment-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--shop-line);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.shop-payment-option input[type="radio"] {
+    width: auto;
+    min-height: 0;
+    margin: 3px 0 0;
+    accent-color: var(--shop-red);
+}
+
+.shop-payment-option span {
+    display: grid;
+    gap: 4px;
+}
+
+.shop-payment-option strong {
+    color: var(--shop-ink);
+    font-size: 13px;
+}
+
+.shop-payment-option small,
+.shop-payment-hint {
+    color: var(--shop-muted);
+    font-size: 11px;
+}
+
+.shop-payment-hint {
+    margin: 0;
+}
+
+.shop-transfer-details {
+    max-width: 520px;
+    margin: 20px auto;
+    padding: 18px;
+    border: 1px solid var(--shop-line);
+    border-radius: 7px;
+    background: #fff;
+    text-align: left;
+}
+
+.shop-transfer-details h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+}
+
+.shop-payment-qr {
+    display: block;
+    width: min(100%, 300px);
+    height: auto;
+    margin: 12px auto 18px;
+    image-rendering: pixelated;
+}
+
+.shop-payment-pending {
+    margin: 16px auto;
+    color: #8a5700;
+}
+
+.shop-transfer-details p {
+    margin: 7px 0;
+    overflow-wrap: anywhere;
+}
+
+.shop-order-continue-link {
+    display: inline-block;
+    margin: 20px 10px 0;
+    color: var(--shop-red);
+    font-size: 13px;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.shop-orders-page {
+    width: min(1050px, calc(100% - 48px));
+    margin: 48px auto 72px;
+}
+
+.shop-orders-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 26px;
+}
+
+.shop-orders-heading h1 {
+    margin: 6px 0 0;
+    font-size: clamp(28px, 4vw, 40px);
+}
+
+.shop-orders-list {
+    display: grid;
+    gap: 14px;
+}
+
+.shop-order-card,
+.shop-order-tracking {
+    padding: 20px;
+    border: 1px solid var(--shop-line);
+    border-radius: 7px;
+    background: #fff;
+}
+
+.shop-order-card-heading,
+.shop-order-card-info,
+.shop-order-card-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.shop-order-card-heading > div {
+    display: grid;
+    gap: 4px;
+}
+
+.shop-order-card-heading > div span,
+.shop-order-card-heading time,
+.shop-order-card-info > span {
+    color: var(--shop-muted);
+    font-size: 12px;
+}
+
+.shop-order-card-info {
+    justify-content: flex-start;
+    margin: 18px 0;
+}
+
+.shop-order-card-info strong {
+    margin-left: auto;
+    color: var(--shop-ink);
+}
+
+.shop-order-card-status {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    padding-top: 14px;
+    border-top: 1px solid var(--shop-line);
+}
+
+.shop-order-status,
+.shop-payment-status {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f1f2f4;
+    color: #565961;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.shop-order-status.status-shipping,
+.shop-order-status.status-confirmed {
+    background: #eef4ff;
+    color: #2857a4;
+}
+
+.shop-order-status.status-completed {
+    background: #eaf7ef;
+    color: #167447;
+}
+
+.shop-order-status.status-cancelled {
+    background: #fff0f1;
+    color: var(--shop-red);
+}
+
+.shop-payment-status {
+    background: #fff6e5;
+    color: #8a5700;
+}
+
+.shop-order-card-status a {
+    margin-left: auto;
+    color: var(--shop-red);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.shop-order-card-status form {
+    margin: 0;
+}
+
+.shop-order-delete-button {
+    padding: 7px 10px;
+    border: 1px solid #e4b7bf;
+    border-radius: 5px;
+    color: var(--shop-red);
+    background: #fff;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.shop-order-delete-button:hover {
+    color: #fff;
+    background: var(--shop-red);
+}
+
+.shop-order-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.shop-orders-empty {
+    padding: 32px;
+    border: 1px solid var(--shop-line);
+    border-radius: 7px;
+    text-align: center;
+}
+
+.shop-orders-empty .shop-purchase-button {
+    margin-top: 12px;
+}
+
+.shop-order-tracking-status {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--shop-line);
+}
+
+.shop-order-tracking-status > div {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+}
+
+.shop-order-tracking-status > div > span {
+    color: var(--shop-muted);
+    font-size: 12px;
+}
+
+.shop-order-payment-notice {
+    margin: 18px 0;
+    padding: 16px;
+    border-radius: 6px;
+    background: #fff8e9;
+    color: #755000;
+    font-size: 13px;
+}
+
+.shop-order-payment-notice p {
+    margin: 6px 0;
+}
+
+.shop-customer-order-items {
+    margin: 22px 0;
+}
+
+.shop-customer-order-items h2,
+.shop-order-tracking-bottom h2 {
+    margin: 0 0 14px;
+    font-size: 17px;
+}
+
+.shop-customer-order-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--shop-line);
+}
+
+.shop-customer-order-item > div {
+    display: grid;
+    gap: 5px;
+}
+
+.shop-customer-order-item > div span {
+    color: var(--shop-muted);
+    font-size: 12px;
+}
+
+.shop-customer-order-item > strong {
+    white-space: nowrap;
+}
+
+.shop-order-tracking-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 22px;
+}
+
+.shop-order-tracking-bottom p {
+    margin: 7px 0;
+    color: #555860;
+    font-size: 13px;
+}
+
+.shop-order-total p {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.shop-order-total .shop-order-grand-total {
+    padding-top: 12px;
+    border-top: 1px solid var(--shop-line);
+    color: var(--shop-ink);
+    font-size: 15px;
 }
 
 .shop-checkout-line span {
@@ -400,6 +779,14 @@ body {
     .shop-cart-line-total {
         grid-column: 2;
     }
+
+    .shop-order-tracking-status {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .shop-order-tracking-bottom {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 480px) {
@@ -412,6 +799,31 @@ body {
     .shop-cart-heading {
         align-items: start;
         flex-direction: column;
+    }
+
+    .shop-orders-page {
+        width: calc(100% - 28px);
+        margin-top: 30px;
+    }
+
+    .shop-orders-heading {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .shop-order-card-heading,
+    .shop-order-card-info {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .shop-order-card-info strong,
+    .shop-order-card-status a {
+        margin-left: 0;
+    }
+
+    .shop-order-tracking-status {
+        grid-template-columns: 1fr 1fr;
     }
 
     .shop-purchase-form {

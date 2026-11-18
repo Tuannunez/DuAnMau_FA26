@@ -29,6 +29,7 @@ class CartController
         $cartAvailable = !array_filter($cartLines, static fn(array $line): bool => !$line['available']);
         $categories = (new ProductModel())->getStoreCategories();
         $products = [];
+        $csrfToken = $_SESSION['csrf_token'];
         $title = 'Giỏ hàng';
         $isCatalogPage = true;
         $isCartPage = true;
@@ -42,10 +43,15 @@ class CartController
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCsrfToken();
             [$cartLines, $cartTotal] = $this->getCartLines();
+            $paymentMethodInput = $_POST['payment_method'] ?? '';
+            $paymentMethod = is_string($paymentMethodInput) ? $paymentMethodInput : '';
             if ($cartLines === []) {
                 $checkoutError = 'Giỏ hàng đang trống.';
             } elseif (array_filter($cartLines, static fn(array $line): bool => !$line['available'])) {
                 $checkoutError = 'Tồn kho đã thay đổi. Vui lòng cập nhật giỏ hàng trước khi đặt.';
+            } elseif (!in_array($paymentMethod, ['cod', 'bank_transfer'], true)) {
+                $customer = $this->checkoutCustomerFromPost();
+                $checkoutError = 'Vui lòng chọn phương thức thanh toán hợp lệ.';
             } else {
                 $customer = $this->checkoutCustomerFromPost();
                 $checkoutError = $this->validateCustomer($customer);
@@ -60,9 +66,19 @@ class CartController
                             $cartLines
                         );
                         $userId = isset($_SESSION['user']['id']) ? (int) $_SESSION['user']['id'] : null;
-                        $orderCode = (new OrderModel())->createCustomerOrder($customer, $items, $userId);
+                        $orderCode = (new OrderModel())->createCustomerOrder($customer, $items, $userId, $paymentMethod);
                         unset($_SESSION['cart']);
-                        $_SESSION['order_success'] = $orderCode;
+                        $_SESSION['order_success'] = [
+                            'code' => $orderCode,
+                            'payment_method' => $paymentMethod,
+                            'total_amount' => $cartTotal,
+                        ];
+                        $guestOrderCodes = $_SESSION['guest_order_codes'] ?? [];
+                        if (!is_array($guestOrderCodes)) {
+                            $guestOrderCodes = [];
+                        }
+                        $guestOrderCodes[] = $orderCode;
+                        $_SESSION['guest_order_codes'] = array_slice(array_values(array_unique($guestOrderCodes)), -50);
                         header('Location: ' . BASE_URL . '?action=checkout&success=' . urlencode($orderCode));
                         exit;
                     } catch (PDOException $exception) {
@@ -77,11 +93,15 @@ class CartController
             [$cartLines, $cartTotal] = $this->getCartLines();
             $checkoutError = null;
             $customer = $this->checkoutCustomerFromSession();
+            $paymentMethod = 'cod';
         }
         $cartAvailable = !array_filter($cartLines, static fn(array $line): bool => !$line['available']);
 
         $successInput = $_GET['success'] ?? '';
-        $sessionOrderCode = $_SESSION['order_success'] ?? null;
+        $sessionOrder = $_SESSION['order_success'] ?? [];
+        $sessionOrderCode = is_array($sessionOrder) ? ($sessionOrder['code'] ?? null) : $sessionOrder;
+        $orderPaymentMethod = is_array($sessionOrder) ? ($sessionOrder['payment_method'] ?? 'cod') : 'cod';
+        $orderTotal = is_array($sessionOrder) ? (float) ($sessionOrder['total_amount'] ?? 0) : 0;
         $orderSuccessCode = is_string($successInput)
             && is_string($sessionOrderCode)
             && hash_equals($sessionOrderCode, $successInput)
@@ -90,10 +110,58 @@ class CartController
             : null;
         $categories = (new ProductModel())->getStoreCategories();
         $products = [];
-        $title = $orderSuccessCode === null ? 'Thanh toán' : 'Đặt hàng thành công';
+        $csrfToken = $_SESSION['csrf_token'];
+        $title = $orderSuccessCode === null
+            ? 'Thanh toán'
+            : ($orderPaymentMethod === 'bank_transfer' ? 'Chờ thanh toán' : 'Đặt hàng thành công');
         $isCatalogPage = true;
         $isCheckoutPage = true;
         require PATH_VIEW_MAIN;
+    }
+
+    public function paymentQr(): void
+    {
+        $successInput = $_GET['success'] ?? '';
+        if (!is_string($successInput)
+            || !preg_match('/^DH[0-9]{14}[A-F0-9]{6}$/', $successInput)
+            || BANK_TRANSFER_BANK_BIN === ''
+            || BANK_TRANSFER_ACCOUNT_NUMBER === '') {
+            http_response_code(404);
+            exit;
+        }
+
+        $userId = isset($_SESSION['user']['id']) ? (int) $_SESSION['user']['id'] : null;
+        $guestCodes = $_SESSION['guest_order_codes'] ?? [];
+        $order = (new OrderModel())->findCustomerOrder(
+            $successInput,
+            $userId,
+            is_array($guestCodes) ? $guestCodes : []
+        );
+        if ($order === null
+            || $order['payment_method'] !== 'bank_transfer'
+            || $order['payment_status'] !== 'unpaid') {
+            http_response_code(404);
+            exit;
+        }
+
+        $payload = $this->buildVietQrPayload(
+            BANK_TRANSFER_BANK_BIN,
+            BANK_TRANSFER_ACCOUNT_NUMBER,
+            (float) $order['total_amount'],
+            $successInput
+        );
+        $qrCode = new \Endroid\QrCode\QrCode(
+            data: $payload,
+            encoding: new \Endroid\QrCode\Encoding\Encoding('UTF-8'),
+            errorCorrectionLevel: \Endroid\QrCode\ErrorCorrectionLevel::Medium,
+            size: 320,
+            margin: 12
+        );
+        $result = (new \Endroid\QrCode\Writer\SvgWriter())->write($qrCode);
+
+        header('Content-Type: image/svg+xml; charset=utf-8');
+        header('Cache-Control: no-store, private');
+        echo $result->getString();
     }
 
     private function addItem(): void
@@ -276,6 +344,52 @@ class CartController
         if (!isset($_SESSION['csrf_token'])) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
+    }
+
+    private function buildVietQrPayload(string $bankBin, string $accountNumber, float $amount, string $orderCode): string
+    {
+        $beneficiary = $this->emvField('00', 'A000000727')
+            . $this->emvField('01',
+                $this->emvField('00', $bankBin)
+                . $this->emvField('01', $accountNumber)
+                . $this->emvField('02', 'QRIBFTTA')
+            );
+        $additionalData = $this->emvField('08', $orderCode);
+        $payload = '000201'
+            . '010212'
+            . $this->emvField('38', $beneficiary)
+            . '5303704'
+            . $this->emvField('54', number_format($amount, 0, '', ''))
+            . '5802VN'
+            . $this->emvField('62', $additionalData)
+            . '6304';
+
+        return $payload . $this->crc16($payload);
+    }
+
+    private function emvField(string $tag, string $value): string
+    {
+        $length = strlen($value);
+        if ($length > 99) {
+            throw new RuntimeException('Dữ liệu QR thanh toán vượt quá độ dài cho phép.');
+        }
+
+        return $tag . str_pad((string) $length, 2, '0', STR_PAD_LEFT) . $value;
+    }
+
+    private function crc16(string $value): string
+    {
+        $crc = 0xFFFF;
+        for ($index = 0, $length = strlen($value); $index < $length; $index++) {
+            $crc ^= ord($value[$index]) << 8;
+            for ($bit = 0; $bit < 8; $bit++) {
+                $crc = ($crc & 0x8000) !== 0
+                    ? (($crc << 1) ^ 0x1021) & 0xFFFF
+                    : ($crc << 1) & 0xFFFF;
+            }
+        }
+
+        return strtoupper(str_pad(dechex($crc), 4, '0', STR_PAD_LEFT));
     }
 
     private function validateCsrfToken(): void

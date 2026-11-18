@@ -11,6 +11,10 @@ $paymentStatusLabels = [
     'paid' => 'Đã thanh toán',
     'refunded' => 'Đã hoàn tiền',
 ];
+$paymentMethodLabels = [
+    'cod' => 'Nhận hàng',
+    'bank_transfer' => 'Chuyển khoản',
+];
 ?>
 
 <section class="admin-product-section">
@@ -71,7 +75,10 @@ $paymentStatusLabels = [
                                 <td><?= htmlspecialchars($orderRow['recipient_phone'], ENT_QUOTES, 'UTF-8') ?></td>
                                 <td><?= (int) $orderRow['item_count'] ?></td>
                                 <td><?= number_format((float) $orderRow['total_amount'], 0, ',', '.') ?> ₫</td>
-                                <td><?= htmlspecialchars($paymentStatusLabels[$orderRow['payment_status']] ?? $orderRow['payment_status'], ENT_QUOTES, 'UTF-8') ?></td>
+                                <td>
+                                    <?= htmlspecialchars($paymentMethodLabels[$orderRow['payment_method']] ?? $orderRow['payment_method'], ENT_QUOTES, 'UTF-8') ?>
+                                    <small class="admin-order-payment-status"><?= htmlspecialchars($paymentStatusLabels[$orderRow['payment_status']] ?? $orderRow['payment_status'], ENT_QUOTES, 'UTF-8') ?></small>
+                                </td>
                                 <td>
                                     <span class="admin-status <?= $orderRow['status'] === 'completed' ? 'admin-status-active' : ($orderRow['status'] === 'cancelled' ? 'admin-status-locked' : '') ?>">
                                         <?= htmlspecialchars($orderStatusLabels[$orderRow['status']] ?? $orderRow['status'], ENT_QUOTES, 'UTF-8') ?>
