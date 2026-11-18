@@ -27,6 +27,30 @@ if (hero instanceof HTMLElement) {
     }
 }
 
+const productGallery = document.querySelector("[data-product-gallery]");
+if (productGallery instanceof HTMLElement) {
+    const mainImage = productGallery.querySelector("[data-main-product-image]");
+    const thumbnails = Array.from(productGallery.querySelectorAll("[data-product-thumbnail]"));
+
+    if (mainImage instanceof HTMLImageElement) {
+        thumbnails.forEach((thumbnail) => {
+            thumbnail.addEventListener("click", () => {
+                const imageSource = thumbnail.dataset.imageSrc;
+                if (!imageSource) {
+                    return;
+                }
+
+                mainImage.src = imageSource;
+                thumbnails.forEach((item) => {
+                    const isActive = item === thumbnail;
+                    item.classList.toggle("is-active", isActive);
+                    item.setAttribute("aria-pressed", String(isActive));
+                });
+            });
+        });
+    }
+}
+
 if (searchForm instanceof HTMLFormElement) {
     const searchInput = searchForm.querySelector('input[type="search"]');
     const products = Array.from(document.querySelectorAll("[data-product-card]"));

@@ -30,6 +30,47 @@ class ProductModel extends BaseModel
         return $statement->fetchAll();
     }
 
+    public function findAvailableForStore(int $id): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT products.id, products.category_id, products.name, products.slug, products.sku,
+                    products.description, products.price, products.stock, products.image_url,
+                    categories.name AS category_name,
+                    (
+                        SELECT product_images.image_url
+                        FROM product_images
+                        WHERE product_images.product_id = products.id
+                        ORDER BY product_images.sort_order, product_images.id
+                        LIMIT 1
+                    ) AS additional_image
+             FROM products
+             LEFT JOIN categories ON categories.id = products.category_id
+             WHERE products.id = :id AND products.status = 1
+             LIMIT 1'
+        );
+        $statement->execute(['id' => $id]);
+        $product = $statement->fetch();
+
+        return $product ?: null;
+    }
+
+    public function findForCart(int $id): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT products.id, products.category_id, products.name, products.sku,
+                    products.price, products.stock, products.image_url, products.status,
+                    categories.name AS category_name
+             FROM products
+             LEFT JOIN categories ON categories.id = products.category_id
+             WHERE products.id = :id
+             LIMIT 1'
+        );
+        $statement->execute(['id' => $id]);
+        $product = $statement->fetch();
+
+        return $product ?: null;
+    }
+
     public function getStoreCategories(): array
     {
         $statement = $this->pdo->query(

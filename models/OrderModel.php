@@ -54,7 +54,7 @@ class OrderModel extends BaseModel
     public function getItems(int $orderId): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, product_id, product_name, sku, quantity, unit_price
+            'SELECT id, product_id, product_name, sku, size, quantity, unit_price
              FROM order_items
              WHERE order_id = :order_id
              ORDER BY id'
@@ -62,6 +62,118 @@ class OrderModel extends BaseModel
         $statement->execute(['order_id' => $orderId]);
 
         return $statement->fetchAll();
+    }
+
+    public function createCustomerOrder(array $customer, array $items, ?int $userId): string
+    {
+        if ($items === []) {
+            throw new InvalidArgumentException('Giỏ hàng đang trống.');
+        }
+
+        $this->pdo->beginTransaction();
+        try {
+            $quantitiesByProduct = [];
+            foreach ($items as $item) {
+                $productId = (int) ($item['product_id'] ?? 0);
+                $quantity = (int) ($item['quantity'] ?? 0);
+                if ($productId < 1 || $quantity < 1) {
+                    throw new RuntimeException('Thông tin sản phẩm trong giỏ không hợp lệ.');
+                }
+                $quantitiesByProduct[$productId] = ($quantitiesByProduct[$productId] ?? 0) + $quantity;
+            }
+            ksort($quantitiesByProduct, SORT_NUMERIC);
+
+            $productsById = [];
+            foreach ($quantitiesByProduct as $productId => $totalQuantity) {
+                $statement = $this->pdo->prepare(
+                    'SELECT id, name, sku, price, stock
+                     FROM products
+                     WHERE id = :id AND status = 1
+                     FOR UPDATE'
+                );
+                $statement->execute(['id' => $productId]);
+                $product = $statement->fetch();
+                if (!$product) {
+                    throw new RuntimeException('Một sản phẩm trong giỏ đã ngừng bán. Vui lòng kiểm tra lại giỏ hàng.');
+                }
+                if ($totalQuantity > (int) $product['stock']) {
+                    throw new RuntimeException('Số lượng sản phẩm "' . $product['name'] . '" không còn đủ trong kho.');
+                }
+                $productsById[$productId] = $product;
+            }
+
+            $lockedProducts = [];
+            $subtotal = 0.0;
+            foreach ($items as $item) {
+                $product = $productsById[(int) $item['product_id']];
+                $product['quantity'] = $item['quantity'];
+                $product['size'] = $item['size'];
+                $lockedProducts[] = $product;
+                $subtotal += (float) $product['price'] * $item['quantity'];
+            }
+
+            $orderCode = 'DH' . date('YmdHis') . strtoupper(bin2hex(random_bytes(3)));
+            $orderStatement = $this->pdo->prepare(
+                'INSERT INTO orders
+                    (user_id, order_code, recipient_name, recipient_email, recipient_phone,
+                     shipping_address, subtotal, discount_amount, total_amount, payment_method,
+                     payment_status, status, note)
+                 VALUES
+                    (:user_id, :order_code, :recipient_name, :recipient_email, :recipient_phone,
+                     :shipping_address, :subtotal, 0, :total_amount, :payment_method,
+                     :payment_status, :status, :note)'
+            );
+            $orderStatement->execute([
+                'user_id' => $userId,
+                'order_code' => $orderCode,
+                'recipient_name' => $customer['name'],
+                'recipient_email' => $customer['email'],
+                'recipient_phone' => $customer['phone'],
+                'shipping_address' => $customer['address'],
+                'subtotal' => $subtotal,
+                'total_amount' => $subtotal,
+                'payment_method' => 'cod',
+                'payment_status' => 'unpaid',
+                'status' => 'pending',
+                'note' => $customer['note'] === '' ? null : $customer['note'],
+            ]);
+            $orderId = (int) $this->pdo->lastInsertId();
+
+            $itemStatement = $this->pdo->prepare(
+                'INSERT INTO order_items
+                    (order_id, product_id, product_name, sku, size, quantity, unit_price)
+                 VALUES
+                    (:order_id, :product_id, :product_name, :sku, :size, :quantity, :unit_price)'
+            );
+            $stockStatement = $this->pdo->prepare(
+                'UPDATE products SET stock = stock - :quantity WHERE id = :id'
+            );
+            $decrementedProducts = [];
+            foreach ($lockedProducts as $product) {
+                $itemStatement->execute([
+                    'order_id' => $orderId,
+                    'product_id' => $product['id'],
+                    'product_name' => $product['name'],
+                    'sku' => $product['sku'],
+                    'size' => $product['size'] === '' ? null : $product['size'],
+                    'quantity' => $product['quantity'],
+                    'unit_price' => $product['price'],
+                ]);
+                $decrementedProducts[$product['id']] = ($decrementedProducts[$product['id']] ?? 0) + $product['quantity'];
+            }
+            foreach ($decrementedProducts as $productId => $quantity) {
+                $stockStatement->execute(['quantity' => $quantity, 'id' => $productId]);
+            }
+
+            $this->pdo->commit();
+
+            return $orderCode;
+        } catch (Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $exception;
+        }
     }
 
     public function updateStatus(int $id, string $status, string $paymentStatus): void

@@ -1,3 +1,13 @@
+<?php
+$cartItemCount = 0;
+foreach (($_SESSION['cart'] ?? []) as $cartVariants) {
+    if (is_array($cartVariants)) {
+        foreach ($cartVariants as $quantity) {
+            $cartItemCount += max(0, (int) $quantity);
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="vi">
 
@@ -50,7 +60,7 @@
 
                 <nav class="shop-nav" aria-label="Điều hướng chính">
                     <a
-                        class="shop-nav-link <?= empty($isCatalogPage) ? 'is-active' : '' ?>"
+                        class="shop-nav-link <?= empty($isCatalogPage) && empty($isProductDetail) ? 'is-active' : '' ?>"
                         href="<?= BASE_URL ?>">
                         Trang chủ
                     </a>
@@ -63,16 +73,20 @@
                     <?php endforeach; ?>
                 </nav>
 
-                <form class="shop-search" role="search" data-category-search>
-                    <label class="visually-hidden" for="shop-search-input">Tìm kiếm sản phẩm</label>
-                    <input id="shop-search-input" type="search" placeholder="Tìm kiếm..." autocomplete="off">
-                    <button type="submit" aria-label="Tìm kiếm">
-                        <span aria-hidden="true">⌕</span>
-                    </button>
-                </form>
+                <?php if (empty($isProductDetail) && empty($isCartPage) && empty($isCheckoutPage)): ?>
+                    <form class="shop-search" role="search" data-category-search>
+                        <label class="visually-hidden" for="shop-search-input">Tìm kiếm sản phẩm</label>
+                        <input id="shop-search-input" type="search" placeholder="Tìm kiếm..." autocomplete="off">
+                        <button type="submit" aria-label="Tìm kiếm">
+                            <span aria-hidden="true">⌕</span>
+                        </button>
+                    </form>
+                <?php endif; ?>
 
                 <div class="shop-account-actions">
-                    <span class="shop-order-placeholder" aria-disabled="true">Đơn hàng <small>Sắp có</small></span>
+                    <a class="shop-cart-link" href="<?= BASE_URL ?>?action=cart">
+                        Giỏ hàng <span class="shop-cart-count"><?= $cartItemCount ?></span>
+                    </a>
                     <span class="shop-account-divider" aria-hidden="true"></span>
                     <?php if (isset($_SESSION['user'])): ?>
                         <span class="shop-account-name">
@@ -98,6 +112,13 @@
         </header>
 
         <main class="shop-main">
+            <?php if (!empty($isProductDetail)): ?>
+                <?php require PATH_VIEW . 'partials/store-product-detail.php'; ?>
+            <?php elseif (!empty($isCartPage)): ?>
+                <?php require PATH_VIEW . 'partials/store-cart.php'; ?>
+            <?php elseif (!empty($isCheckoutPage)): ?>
+                <?php require PATH_VIEW . 'partials/store-checkout.php'; ?>
+            <?php else: ?>
             <?php if (empty($isCatalogPage)): ?>
                 <section class="shop-hero" id="banner" aria-label="Bộ sưu tập LFC Shop">
                     <img
@@ -147,40 +168,45 @@
                                 data-product-card
                                 data-category-id="<?= (int) ($product['category_id'] ?? 0) ?>"
                                 data-search-terms="<?= htmlspecialchars($searchTerms, ENT_QUOTES, 'UTF-8') ?>">
-                                <div class="shop-product-image">
-                                    <?php if (!empty($product['image_url'])): ?>
-                                        <img
-                                            src="<?= htmlspecialchars($product['image_url'], ENT_QUOTES, 'UTF-8') ?>"
-                                            alt="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?>"
-                                            loading="lazy">
-                                    <?php else: ?>
-                                        <span>Chưa có hình ảnh</span>
-                                    <?php endif; ?>
-                                    <?php if (!empty($product['additional_image'])): ?>
-                                        <img
-                                            class="shop-product-image-secondary"
-                                            src="<?= htmlspecialchars($product['additional_image'], ENT_QUOTES, 'UTF-8') ?>"
-                                            alt="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?> - ảnh phụ"
-                                            loading="lazy">
-                                    <?php endif; ?>
-                                </div>
-                                <div class="shop-product-info">
-                                    <?php if (!empty($product['category_name'])): ?>
-                                        <span class="shop-product-category"><?= htmlspecialchars($product['category_name'], ENT_QUOTES, 'UTF-8') ?></span>
-                                    <?php endif; ?>
-                                    <h2><?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?></h2>
-                                    <p class="shop-product-price"><?= number_format((float) $product['price'], 0, ',', '.') ?> ₫</p>
-                                    <p class="shop-product-stock">
-                                        <?= (int) $product['stock'] > 0 ? 'Còn ' . (int) $product['stock'] . ' sản phẩm' : 'Tạm hết hàng' ?>
-                                    </p>
-                                </div>
+                                <a class="shop-product-card-link" href="<?= BASE_URL ?>?action=product&amp;id=<?= (int) $product['id'] ?>">
+                                    <div class="shop-product-image">
+                                        <?php if (!empty($product['image_url'])): ?>
+                                            <img
+                                                src="<?= htmlspecialchars($product['image_url'], ENT_QUOTES, 'UTF-8') ?>"
+                                                alt="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?>"
+                                                loading="lazy">
+                                        <?php else: ?>
+                                            <span>Chưa có hình ảnh</span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($product['additional_image'])): ?>
+                                            <img
+                                                class="shop-product-image-secondary"
+                                                src="<?= htmlspecialchars($product['additional_image'], ENT_QUOTES, 'UTF-8') ?>"
+                                                alt="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?> - ảnh phụ"
+                                                loading="lazy">
+                                        <?php endif; ?>
+                                        <span class="shop-product-view-detail">Xem chi tiết <span aria-hidden="true">→</span></span>
+                                    </div>
+                                    <div class="shop-product-info">
+                                        <?php if (!empty($product['category_name'])): ?>
+                                            <span class="shop-product-category"><?= htmlspecialchars($product['category_name'], ENT_QUOTES, 'UTF-8') ?></span>
+                                        <?php endif; ?>
+                                        <h2><?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?></h2>
+                                        <p class="shop-product-price"><?= number_format((float) $product['price'], 0, ',', '.') ?> ₫</p>
+                                        <p class="shop-product-stock">
+                                            <?= (int) $product['stock'] > 0 ? 'Còn ' . (int) $product['stock'] . ' sản phẩm' : 'Tạm hết hàng' ?>
+                                        </p>
+                                    </div>
+                                </a>
                             </article>
                         <?php endforeach; ?>
                         <p class="shop-search-empty" data-search-empty hidden>Không tìm thấy sản phẩm phù hợp.</p>
                     </div>
                 <?php endif; ?>
             </section>
+            <?php endif; ?>
 
+            <?php if (empty($isCartPage) && empty($isCheckoutPage)): ?>
             <section class="shop-highlights" aria-label="Cam kết của LFC Shop">
                 <article class="shop-highlight">
                     <span class="shop-highlight-icon" aria-hidden="true">01</span>
@@ -204,6 +230,7 @@
                     </div>
                 </article>
             </section>
+            <?php endif; ?>
         </main>
 
         <footer class="shop-footer" id="shop-footer">

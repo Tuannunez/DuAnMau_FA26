@@ -67,6 +67,7 @@ $paymentStatusLabels = [
                             <tr>
                                 <th scope="col">Sản phẩm</th>
                                 <th scope="col">Mã SKU</th>
+                                <th scope="col">Size</th>
                                 <th scope="col">Đơn giá</th>
                                 <th scope="col">Số lượng</th>
                                 <th scope="col">Thành tiền</th>
@@ -77,6 +78,7 @@ $paymentStatusLabels = [
                                 <tr>
                                     <td><?= htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars($item['sku'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($item['size'] ?? '—', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= number_format((float) $item['unit_price'], 0, ',', '.') ?> ₫</td>
                                     <td><?= (int) $item['quantity'] ?></td>
                                     <td><?= number_format((float) $item['unit_price'] * (int) $item['quantity'], 0, ',', '.') ?> ₫</td>

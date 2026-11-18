@@ -27,6 +27,37 @@ class HomeController
         $this->showCatalog($categoryId);
     }
 
+    public function product(): void
+    {
+        $productId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
+        if ($productId === false || $productId === null || $productId < 1) {
+            http_response_code(404);
+            exit('Không tìm thấy sản phẩm.');
+        }
+
+        $productModel = new ProductModel();
+        $product = $productModel->findAvailableForStore($productId);
+        if ($product === null) {
+            http_response_code(404);
+            exit('Không tìm thấy sản phẩm.');
+        }
+
+        $categories = $productModel->getStoreCategories();
+        $selectedCategoryId = (int) ($product['category_id'] ?? 0);
+        $requiresSize = CartModel::requiresSize($product);
+        $cartError = $_SESSION['cart_error'] ?? null;
+        unset($_SESSION['cart_error']);
+        $cartNotice = $_SESSION['cart_notice'] ?? null;
+        unset($_SESSION['cart_notice']);
+        if (!isset($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        $csrfToken = $_SESSION['csrf_token'];
+        $isProductDetail = true;
+        $title = $product['name'];
+        require PATH_VIEW_MAIN;
+    }
+
     private function showCatalog(?int $categoryId = null): void
     {
         $productModel = new ProductModel();
