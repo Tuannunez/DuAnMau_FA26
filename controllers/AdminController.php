@@ -42,6 +42,20 @@ class AdminController
         $showProductForm = false;
         $additionalImage = null;
         $productError = null;
+        $categoryForm = $this->emptyCategoryForm();
+        $editingCategoryId = null;
+        $showCategoryForm = false;
+        $categoryError = null;
+        $categoryRows = [];
+        $parentCategories = [];
+        $orders = [];
+        $order = null;
+        $orderItems = [];
+        $orderError = null;
+        $orderStatusFilter = null;
+        $orderStatuses = OrderModel::statuses();
+        $paymentStatuses = OrderModel::paymentStatuses();
+        $orderResult = null;
 
         if ($section === 'products') {
             $productModel = new ProductModel();
@@ -165,6 +179,186 @@ class AdminController
             }
         }
 
+        if ($section === 'categories') {
+            $categoryModel = new CategoryModel();
+
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $this->validateCsrfToken();
+                $formAction = $_POST['form_action'] ?? '';
+
+                if ($formAction === 'delete') {
+                    $categoryId = filter_var($_POST['category_id'] ?? null, FILTER_VALIDATE_INT);
+                    if ($categoryId === false || $categoryId === null || $categoryId < 1) {
+                        $categoryError = 'Danh mục không hợp lệ.';
+                    } else {
+                        $category = $categoryModel->find($categoryId);
+                        if ($category === null) {
+                            $categoryError = 'Không tìm thấy danh mục cần xóa.';
+                        } else {
+                            $references = $categoryModel->getReferenceCounts($categoryId);
+                            if ((int) $references['products'] > 0) {
+                                $categoryError = 'Không thể xóa danh mục đang có sản phẩm. Hãy chuyển sản phẩm sang danh mục khác trước.';
+                            } elseif ((int) $references['children'] > 0) {
+                                $categoryError = 'Không thể xóa danh mục đang có danh mục con. Hãy chuyển danh mục con trước.';
+                            } else {
+                                $categoryModel->delete($categoryId);
+                                header('Location: ' . BASE_URL . '?action=admin&section=categories&result=deleted');
+                                exit;
+                            }
+                        }
+                    }
+                } elseif ($formAction === 'save') {
+                    $showCategoryForm = true;
+                    $editingCategoryIdInput = $_POST['category_id'] ?? '';
+                    $editingCategoryId = $editingCategoryIdInput === ''
+                        ? null
+                        : filter_var($editingCategoryIdInput, FILTER_VALIDATE_INT);
+                    $categoryForm = $this->categoryFormFromPost();
+
+                    if ($editingCategoryId === false || ($editingCategoryId !== null && $editingCategoryId < 1)) {
+                        $categoryError = 'Danh mục không hợp lệ.';
+                        $editingCategoryId = null;
+                    } else {
+                        $categoryError = $this->validateCategoryForm($categoryForm);
+                    }
+
+                    if ($categoryError === null && $editingCategoryId !== null
+                        && $categoryModel->find($editingCategoryId) === null) {
+                        $categoryError = 'Không tìm thấy danh mục cần cập nhật.';
+                    }
+                    if ($categoryError === null && $categoryForm['parent_id'] !== ''
+                        && !$categoryModel->parentExists((int) $categoryForm['parent_id'], $editingCategoryId)) {
+                        $categoryError = 'Danh mục cha không hợp lệ hoặc bị trùng với chính nó.';
+                    }
+
+                    if ($categoryError === null) {
+                        $slug = $this->uniqueCategorySlug(
+                            $categoryModel,
+                            $categoryForm['name'],
+                            $editingCategoryId
+                        );
+                        if ($categoryModel->nameExists($categoryForm['name'], $editingCategoryId)) {
+                            $categoryError = 'Tên danh mục đã tồn tại. Vui lòng chọn tên khác.';
+                        } else {
+                            $categoryData = [
+                                'parent_id' => $categoryForm['parent_id'] === '' ? null : (int) $categoryForm['parent_id'],
+                                'name' => $categoryForm['name'],
+                                'slug' => $slug,
+                                'description' => $categoryForm['description'] === '' ? null : $categoryForm['description'],
+                                'status' => (int) $categoryForm['status'],
+                            ];
+
+                            try {
+                                if ($editingCategoryId === null) {
+                                    $categoryModel->create($categoryData);
+                                    $result = 'created';
+                                } else {
+                                    $categoryModel->update($editingCategoryId, $categoryData);
+                                    $result = 'updated';
+                                }
+                                header('Location: ' . BASE_URL . '?action=admin&section=categories&result=' . $result);
+                                exit;
+                            } catch (PDOException $exception) {
+                                if ($exception->getCode() !== '23000') {
+                                    throw $exception;
+                                }
+                                $categoryError = 'Tên danh mục hoặc đường dẫn đã tồn tại.';
+                            }
+                        }
+                    }
+                } else {
+                    http_response_code(400);
+                    exit('Thao tác danh mục không hợp lệ.');
+                }
+            } else {
+                $editingCategoryIdInput = $_GET['category_id'] ?? null;
+                if ($editingCategoryIdInput !== null) {
+                    $showCategoryForm = true;
+                    $editingCategoryId = filter_var($editingCategoryIdInput, FILTER_VALIDATE_INT);
+                    if ($editingCategoryId === false || $editingCategoryId < 1) {
+                        http_response_code(400);
+                        exit('Mã danh mục không hợp lệ.');
+                    }
+                    $categoryForm = $categoryModel->find($editingCategoryId);
+                    if ($categoryForm === null) {
+                        http_response_code(404);
+                        exit('Không tìm thấy danh mục cần sửa.');
+                    }
+                } elseif (($_GET['form'] ?? '') === 'create') {
+                    $showCategoryForm = true;
+                }
+            }
+
+            if ($showCategoryForm) {
+                $parentCategories = $categoryModel->getParentOptions($editingCategoryId);
+            } else {
+                $categoryRows = $categoryModel->getAll();
+            }
+        }
+
+        if ($section === 'orders') {
+            $orderModel = new OrderModel();
+            $orderIdInput = $_GET['order_id'] ?? null;
+
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $this->validateCsrfToken();
+                $formAction = $_POST['form_action'] ?? '';
+                $orderId = filter_var($_POST['order_id'] ?? null, FILTER_VALIDATE_INT);
+
+                if ($formAction !== 'update_status') {
+                    http_response_code(400);
+                    exit('Thao tác đơn hàng không hợp lệ.');
+                }
+                if ($orderId === false || $orderId === null || $orderId < 1) {
+                    http_response_code(400);
+                    exit('Mã đơn hàng không hợp lệ.');
+                }
+                if ($orderModel->find($orderId) === null) {
+                    http_response_code(404);
+                    exit('Không tìm thấy đơn hàng.');
+                }
+
+                $statusInput = $_POST['status'] ?? '';
+                $paymentStatusInput = $_POST['payment_status'] ?? '';
+                if (!is_string($statusInput) || !in_array($statusInput, $orderStatuses, true)
+                    || !is_string($paymentStatusInput) || !in_array($paymentStatusInput, $paymentStatuses, true)) {
+                    $orderError = 'Vui lòng chọn trạng thái đơn hàng và thanh toán hợp lệ.';
+                    $order = $orderModel->find($orderId);
+                    $orderItems = $orderModel->getItems($orderId);
+                } else {
+                    $orderModel->updateStatus($orderId, $statusInput, $paymentStatusInput);
+                    header('Location: ' . BASE_URL . '?action=admin&section=orders&order_id=' . $orderId . '&result=updated');
+                    exit;
+                }
+            } elseif ($orderIdInput !== null) {
+                $orderId = filter_var($orderIdInput, FILTER_VALIDATE_INT);
+                if ($orderId === false || $orderId < 1) {
+                    http_response_code(400);
+                    exit('Mã đơn hàng không hợp lệ.');
+                }
+
+                $order = $orderModel->find($orderId);
+                if ($order === null) {
+                    http_response_code(404);
+                    exit('Không tìm thấy đơn hàng.');
+                }
+                $orderItems = $orderModel->getItems($orderId);
+            } else {
+                $statusInput = $_GET['status'] ?? '';
+                if ($statusInput !== '') {
+                    if (!is_string($statusInput) || !in_array($statusInput, $orderStatuses, true)) {
+                        http_response_code(400);
+                        exit('Bộ lọc trạng thái đơn hàng không hợp lệ.');
+                    }
+                    $orderStatusFilter = $statusInput;
+                }
+                $orders = $orderModel->getAll($orderStatusFilter);
+            }
+
+            $resultInput = $_GET['result'] ?? '';
+            $orderResult = $resultInput === 'updated' ? 'Đã cập nhật trạng thái đơn hàng.' : null;
+        }
+
         $userModel = new UserModel();
         $stats = $section === 'dashboard' ? $userModel->getAdminDashboardStats() : [];
         $users = match ($section) {
@@ -176,6 +370,10 @@ class AdminController
         $title = $navigation[$section]['label'];
         if ($section === 'products' && $showProductForm) {
             $title = $editingProductId === null ? 'Thêm sản phẩm' : 'Sửa sản phẩm';
+        } elseif ($section === 'categories' && $showCategoryForm) {
+            $title = $editingCategoryId === null ? 'Thêm danh mục' : 'Sửa danh mục';
+        } elseif ($section === 'orders' && $order !== null) {
+            $title = 'Chi tiết đơn hàng';
         }
 
         require PATH_VIEW . 'admin.php';
@@ -350,5 +548,68 @@ class AdminController
                 }
             }
         }
+    }
+
+    private function emptyCategoryForm(): array
+    {
+        return [
+            'parent_id' => '',
+            'name' => '',
+            'description' => '',
+            'status' => '1',
+        ];
+    }
+
+    private function categoryFormFromPost(): array
+    {
+        $form = $this->emptyCategoryForm();
+        foreach ($form as $key => $_) {
+            $value = $_POST[$key] ?? '';
+            $form[$key] = is_string($value) ? trim($value) : '';
+        }
+
+        return $form;
+    }
+
+    private function validateCategoryForm(array $category): ?string
+    {
+        if ($category['name'] === '') {
+            return 'Vui lòng nhập tên danh mục.';
+        }
+        if (mb_strlen($category['name']) > 150) {
+            return 'Tên danh mục không được vượt quá 150 ký tự.';
+        }
+        if (mb_strlen($category['description']) > 5000) {
+            return 'Mô tả danh mục quá dài.';
+        }
+        if (!in_array($category['status'], ['0', '1'], true)) {
+            return 'Trạng thái danh mục không hợp lệ.';
+        }
+        if ($category['parent_id'] !== ''
+            && filter_var($category['parent_id'], FILTER_VALIDATE_INT) === false) {
+            return 'Danh mục cha không hợp lệ.';
+        }
+
+        return null;
+    }
+
+    private function uniqueCategorySlug(CategoryModel $categoryModel, string $name, ?int $exceptId): string
+    {
+        $transliterated = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
+        $slug = strtolower(trim((string) preg_replace(
+            '/[^a-zA-Z0-9]+/',
+            '-',
+            $transliterated === false ? $name : $transliterated
+        ), '-'));
+        $slug = $slug === '' ? 'danh-muc' : substr($slug, 0, 170);
+        $candidate = $slug;
+        $suffix = 2;
+
+        while ($categoryModel->slugExists($candidate, $exceptId)) {
+            $candidate = substr($slug, 0, 170 - strlen((string) $suffix) - 1) . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 }

@@ -29,7 +29,7 @@
                         <?= $section === $key ? 'aria-current="page"' : '' ?>>
                         <span class="admin-nav-icon" aria-hidden="true"><?= htmlspecialchars($item['icon'], ENT_QUOTES, 'UTF-8') ?></span>
                         <span><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                        <?php if (in_array($key, ['orders', 'categories', 'promotions', 'reviews'], true)): ?>
+                        <?php if (in_array($key, ['promotions', 'reviews'], true)): ?>
                             <span class="admin-nav-soon">Sắp có</span>
                         <?php endif; ?>
                     </a>
@@ -148,7 +148,14 @@
                                     <a href="<?= BASE_URL ?>?action=admin&amp;section=<?= urlencode($module) ?>">
                                         <span><?= htmlspecialchars($navigation[$module]['icon'], ENT_QUOTES, 'UTF-8') ?></span>
                                         <?= htmlspecialchars($navigation[$module]['label'], ENT_QUOTES, 'UTF-8') ?>
-                                        <small><?= $module === 'products' ? 'Quản lý sản phẩm' : 'Chưa có dữ liệu' ?></small>
+                                        <small>
+                                            <?= match ($module) {
+                                                'products' => 'Quản lý sản phẩm',
+                                                'categories' => 'Quản lý danh mục',
+                                                'orders' => 'Theo dõi đơn hàng',
+                                                default => 'Chưa có dữ liệu',
+                                            } ?>
+                                        </small>
                                     </a>
                                 <?php endforeach; ?>
                             </div>
@@ -191,6 +198,18 @@
                         <?php require PATH_VIEW . 'partials/admin-product-form.php'; ?>
                     <?php else: ?>
                         <?php require PATH_VIEW . 'partials/admin-products.php'; ?>
+                    <?php endif; ?>
+                <?php elseif ($section === 'categories'): ?>
+                    <?php if ($showCategoryForm): ?>
+                        <?php require PATH_VIEW . 'partials/admin-category-form.php'; ?>
+                    <?php else: ?>
+                        <?php require PATH_VIEW . 'partials/admin-categories.php'; ?>
+                    <?php endif; ?>
+                <?php elseif ($section === 'orders'): ?>
+                    <?php if ($order !== null): ?>
+                        <?php require PATH_VIEW . 'partials/admin-order-detail.php'; ?>
+                    <?php else: ?>
+                        <?php require PATH_VIEW . 'partials/admin-orders.php'; ?>
                     <?php endif; ?>
                 <?php elseif ($section === 'settings'): ?>
                     <section class="admin-panel admin-settings-panel" aria-labelledby="settings-title">
