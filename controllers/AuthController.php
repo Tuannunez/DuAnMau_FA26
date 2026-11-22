@@ -17,6 +17,7 @@ class AuthController
 
             if ($user && (int) $user['status'] === 1 && password_verify($password, $user['password'])) {
                 session_regenerate_id(true);
+                unset($_SESSION['guest_order_codes'], $_SESSION['order_success'], $_SESSION['cart']);
                 $_SESSION['user'] = [
                     'id' => (int) $user['id'],
                     'full_name' => $user['full_name'],
@@ -82,6 +83,7 @@ class AuthController
                         password_hash($password, PASSWORD_DEFAULT)
                     );
 
+                    unset($_SESSION['guest_order_codes'], $_SESSION['order_success'], $_SESSION['cart']);
                     header('Location: ' . BASE_URL . '?action=login&registered=1');
                     exit;
                 }
@@ -103,6 +105,7 @@ class AuthController
 
         $this->validateCsrfToken();
         unset($_SESSION['user']);
+        unset($_SESSION['guest_order_codes'], $_SESSION['order_success'], $_SESSION['cart']);
         session_regenerate_id(true);
 
         header('Location: ' . BASE_URL);

@@ -532,7 +532,7 @@ class AdminController
         }
 
         $userModel = new UserModel();
-        $stats = $section === 'dashboard' ? $userModel->getAdminDashboardStats() : [];
+        $revenue = $section === 'dashboard' ? (new OrderModel())->getAdminDashboardRevenue() : [];
         $users = match ($section) {
             'dashboard' => $userModel->getUsersForAdmin(null, 8),
             'customers' => $userModel->getUsersForAdmin('customer'),

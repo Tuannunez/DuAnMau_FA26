@@ -40,9 +40,16 @@ class CartController
     {
         $this->ensureCsrfToken();
         $cart = $_SESSION['cart'] ?? [];
+        [$cartLines, $cartTotal] = $this->getCartLines();
+        $checkoutError = null;
+        $customer = $this->checkoutCustomerFromSession();
+        $paymentMethod = 'cod';
+        $promotionCode = '';
+        $discountAmount = 0;
+        $checkoutTotal = $cartTotal;
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->validateCsrfToken();
-            [$cartLines, $cartTotal] = $this->getCartLines();
+            $customer = $this->checkoutCustomerFromPost();
             $paymentMethodInput = $_POST['payment_method'] ?? '';
             $paymentMethod = is_string($paymentMethodInput) ? $paymentMethodInput : '';
             $promotionCodeInput = $_POST['promotion_code'] ?? '';
@@ -84,18 +91,26 @@ class CartController
                             $discountAmount,
                             $promotion['code'] ?? ''
                         );
-                        unset($_SESSION['cart']);
+                        $_SESSION['cart'] = [];
+                        if ($userId !== null) {
+                            $_SESSION['user_carts'][$userId] = [];
+                        }
                         $_SESSION['order_success'] = [
                             'code' => $orderCode,
                             'payment_method' => $paymentMethod,
                             'total_amount' => $checkoutTotal,
                         ];
-                        $guestOrderCodes = $_SESSION['guest_order_codes'] ?? [];
-                        if (!is_array($guestOrderCodes)) {
-                            $guestOrderCodes = [];
+                        if ($userId === null) {
+                            $guestOrderCodes = $_SESSION['guest_order_codes'] ?? [];
+                            if (!is_array($guestOrderCodes)) {
+                                $guestOrderCodes = [];
+                            }
+                            $guestOrderCodes[] = $orderCode;
+                            $_SESSION['guest_order_codes'] = array_slice(
+                                array_values(array_unique($guestOrderCodes)),
+                                -50
+                            );
                         }
-                        $guestOrderCodes[] = $orderCode;
-                        $_SESSION['guest_order_codes'] = array_slice(array_values(array_unique($guestOrderCodes)), -50);
                         header('Location: ' . BASE_URL . '?action=checkout&success=' . urlencode($orderCode));
                         exit;
                     } catch (PDOException $exception) {
@@ -107,12 +122,6 @@ class CartController
                 }
             }
         } else {
-            [$cartLines, $cartTotal] = $this->getCartLines();
-            $checkoutError = null;
-            $customer = $this->checkoutCustomerFromSession();
-            $paymentMethod = 'cod';
-            $promotionCode = '';
-            $discountAmount = 0;
             $checkoutTotal = $cartTotal;
         }
         $cartAvailable = !array_filter($cartLines, static fn(array $line): bool => !$line['available']);
@@ -242,6 +251,9 @@ class CartController
             if ($_SESSION['cart'][$productId] === []) {
                 unset($_SESSION['cart'][$productId]);
             }
+            if ($_SESSION['cart'] === []) {
+                $_SESSION['cart'] = [];
+            }
             header('Location: ' . BASE_URL . '?action=cart');
             exit;
         }
@@ -311,7 +323,7 @@ class CartController
             $cleanCart[$line['product']['id']][$line['size']] = $line['quantity'];
         }
         if ($cleanCart === []) {
-            unset($_SESSION['cart']);
+            $_SESSION['cart'] = [];
         } else {
             $_SESSION['cart'] = $cleanCart;
         }

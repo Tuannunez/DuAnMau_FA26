@@ -1,4 +1,18 @@
 <?php
+$view = $view ?? null;
+if (!isset($title)) {
+    throw new LogicException('Thiếu tiêu đề trang.');
+}
+$categories = $categories ?? [];
+$products = $products ?? [];
+if ($view === null
+    && empty($isProductDetail)
+    && empty($isCartPage)
+    && empty($isCheckoutPage)
+    && empty($isOrdersPage)
+    && !isset($products)) {
+    throw new LogicException('Thiếu danh sách sản phẩm để hiển thị cửa hàng.');
+}
 $cartItemCount = 0;
 foreach (($_SESSION['cart'] ?? []) as $cartVariants) {
     if (is_array($cartVariants)) {

@@ -64,6 +64,84 @@ class OrderModel extends BaseModel
         return $statement->fetchAll();
     }
 
+    public function getAdminDashboardRevenue(): array
+    {
+        $summaryStatement = $this->pdo->query(
+            'SELECT
+                COALESCE(SUM(CASE
+                    WHEN payment_status = \'paid\' AND status <> \'cancelled\' THEN total_amount
+                    ELSE 0
+                END), 0) AS received_amount,
+                COALESCE(SUM(CASE
+                    WHEN payment_status = \'unpaid\' AND status <> \'cancelled\' THEN total_amount
+                    ELSE 0
+                END), 0) AS outstanding_amount,
+                COALESCE(SUM(payment_status = \'paid\' AND status <> \'cancelled\'), 0) AS paid_orders
+             FROM orders'
+        );
+        $summary = $summaryStatement->fetch();
+
+        $productRevenueStatement = $this->pdo->query(
+            'SELECT COALESCE(SUM(order_items.unit_price * order_items.quantity), 0)
+             FROM order_items
+             INNER JOIN orders ON orders.id = order_items.order_id
+             WHERE orders.payment_status = \'paid\' AND orders.status <> \'cancelled\''
+        );
+
+        $topProductsStatement = $this->pdo->query(
+            'SELECT order_items.product_name,
+                    SUM(order_items.quantity) AS quantity_sold,
+                    SUM(order_items.unit_price * order_items.quantity) AS revenue
+             FROM order_items
+             INNER JOIN orders ON orders.id = order_items.order_id
+             WHERE orders.payment_status = \'paid\' AND orders.status <> \'cancelled\'
+             GROUP BY order_items.product_id, order_items.product_name
+             ORDER BY revenue DESC, quantity_sold DESC
+             LIMIT 5'
+        );
+
+        $startMonth = new DateTimeImmutable('first day of this month');
+        $startMonth = $startMonth->modify('-5 months');
+        $endMonth = (new DateTimeImmutable('first day of this month'))->modify('+1 month');
+        $monthlyStatement = $this->pdo->prepare(
+            'SELECT DATE_FORMAT(created_at, \'%Y-%m\') AS month_key, SUM(total_amount) AS revenue
+             FROM orders
+             WHERE payment_status = \'paid\'
+               AND status <> \'cancelled\'
+               AND created_at >= :start_date
+               AND created_at < :end_date
+             GROUP BY DATE_FORMAT(created_at, \'%Y-%m\')
+             ORDER BY month_key'
+        );
+        $monthlyStatement->execute([
+            'start_date' => $startMonth->format('Y-m-d'),
+            'end_date' => $endMonth->format('Y-m-d'),
+        ]);
+        $monthlyRevenueByKey = [];
+        foreach ($monthlyStatement->fetchAll() as $month) {
+            $monthlyRevenueByKey[$month['month_key']] = (float) $month['revenue'];
+        }
+
+        $monthlyRevenue = [];
+        for ($offset = 0; $offset < 6; $offset++) {
+            $month = $startMonth->modify('+' . $offset . ' months');
+            $monthKey = $month->format('Y-m');
+            $monthlyRevenue[] = [
+                'label' => $month->format('m/Y'),
+                'revenue' => $monthlyRevenueByKey[$monthKey] ?? 0.0,
+            ];
+        }
+
+        return [
+            'received_amount' => (float) $summary['received_amount'],
+            'outstanding_amount' => (float) $summary['outstanding_amount'],
+            'paid_orders' => (int) $summary['paid_orders'],
+            'product_revenue' => (float) $productRevenueStatement->fetchColumn(),
+            'top_products' => $topProductsStatement->fetchAll(),
+            'monthly_revenue' => $monthlyRevenue,
+        ];
+    }
+
     public function getCustomerOrders(?int $userId, array $guestOrderCodes): array
     {
         [$accessCondition, $parameters] = $this->customerAccessCondition($userId, $guestOrderCodes);
@@ -310,13 +388,13 @@ class OrderModel extends BaseModel
         if ($userId !== null && $userId > 0) {
             $conditions[] = 'orders.user_id = :customer_user_id';
             $parameters['customer_user_id'] = $userId;
+        } else {
+            $guestOrderCodes = array_values(array_unique(array_filter(
+                $guestOrderCodes,
+                static fn($code): bool => is_string($code) && preg_match('/^DH[0-9]{14}[A-F0-9]{6}$/', $code)
+            )));
         }
-
-        $guestOrderCodes = array_values(array_unique(array_filter(
-            $guestOrderCodes,
-            static fn($code): bool => is_string($code) && preg_match('/^DH[0-9]{14}[A-F0-9]{6}$/', $code)
-        )));
-        if ($guestOrderCodes !== []) {
+        if (($userId === null || $userId < 1) && $guestOrderCodes !== []) {
             $placeholders = [];
             foreach ($guestOrderCodes as $index => $code) {
                 $placeholder = 'guest_order_' . $index;

@@ -65,40 +65,95 @@
                         <div>
                             <p>Xin chào, <?= htmlspecialchars($_SESSION['user']['full_name'], ENT_QUOTES, 'UTF-8') ?></p>
                             <h2>Tổng quan cửa hàng</h2>
-                            <span>Theo dõi tài khoản hiện có và quản lý cửa hàng thể thao của bạn.</span>
+                            <span>Theo dõi doanh thu sản phẩm, tiền đã nhận và tình hình bán hàng.</span>
                         </div>
                         <span class="admin-welcome-mark" aria-hidden="true">LFC</span>
                     </div>
 
-                    <div class="admin-stats">
+                    <div class="admin-stats admin-finance-stats">
                         <article class="admin-stat-card">
-                            <span class="admin-stat-icon admin-stat-icon-red" aria-hidden="true">♙</span>
+                            <span class="admin-stat-icon admin-stat-icon-red" aria-hidden="true">₫</span>
                             <div>
-                                <p>Tổng tài khoản</p>
-                                <strong><?= number_format((int) $stats['total_users']) ?></strong>
+                                <p>Tiền đã nhận</p>
+                                <strong><?= number_format($revenue['received_amount'], 0, ',', '.') ?> ₫</strong>
                             </div>
                         </article>
                         <article class="admin-stat-card">
-                            <span class="admin-stat-icon admin-stat-icon-green" aria-hidden="true">✓</span>
+                            <span class="admin-stat-icon admin-stat-icon-green" aria-hidden="true">◈</span>
                             <div>
-                                <p>Đang hoạt động</p>
-                                <strong><?= number_format((int) $stats['active_users']) ?></strong>
+                                <p>Doanh thu sản phẩm</p>
+                                <strong><?= number_format($revenue['product_revenue'], 0, ',', '.') ?> ₫</strong>
                             </div>
                         </article>
                         <article class="admin-stat-card">
                             <span class="admin-stat-icon admin-stat-icon-amber" aria-hidden="true">!</span>
                             <div>
-                                <p>Tài khoản bị khóa</p>
-                                <strong><?= number_format((int) $stats['locked_users']) ?></strong>
+                                <p>Đơn chưa thu tiền</p>
+                                <strong><?= number_format($revenue['outstanding_amount'], 0, ',', '.') ?> ₫</strong>
                             </div>
                         </article>
                         <article class="admin-stat-card">
                             <span class="admin-stat-icon admin-stat-icon-dark" aria-hidden="true">A</span>
                             <div>
-                                <p>Quản trị viên</p>
-                                <strong><?= number_format((int) $stats['admin_users']) ?></strong>
+                                <p>Đơn đã thanh toán</p>
+                                <strong><?= number_format($revenue['paid_orders']) ?></strong>
                             </div>
                         </article>
+                    </div>
+
+                    <div class="admin-revenue-grid">
+                        <section class="admin-panel admin-chart-panel" aria-labelledby="revenue-chart-title">
+                            <div class="admin-panel-heading">
+                                <div>
+                                    <h2 id="revenue-chart-title">Tiền nhận về theo tháng</h2>
+                                    <p>Doanh thu từ đơn đã thanh toán trong 6 tháng gần nhất</p>
+                                </div>
+                            </div>
+                            <?php
+                            $maxMonthlyRevenue = max(array_column($revenue['monthly_revenue'], 'revenue'));
+                            ?>
+                            <div class="admin-monthly-chart" role="img" aria-label="Biểu đồ tiền nhận về theo tháng">
+                                <?php foreach ($revenue['monthly_revenue'] as $month): ?>
+                                    <?php $barHeight = $maxMonthlyRevenue > 0 ? ($month['revenue'] / $maxMonthlyRevenue) * 100 : 0; ?>
+                                    <div class="admin-monthly-column">
+                                        <span class="admin-chart-value"><?= number_format($month['revenue'], 0, ',', '.') ?> ₫</span>
+                                        <div class="admin-monthly-track">
+                                            <span class="admin-monthly-bar" style="height: <?= $barHeight ?>%"></span>
+                                        </div>
+                                        <span class="admin-chart-label"><?= htmlspecialchars($month['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </section>
+
+                        <section class="admin-panel admin-chart-panel" aria-labelledby="products-chart-title">
+                            <div class="admin-panel-heading">
+                                <div>
+                                    <h2 id="products-chart-title">Doanh thu sản phẩm</h2>
+                                    <p>Sản phẩm trong đơn đã thanh toán, trước giảm giá</p>
+                                </div>
+                            </div>
+                            <?php $maxProductRevenue = $revenue['top_products'] === [] ? 0 : (float) $revenue['top_products'][0]['revenue']; ?>
+                            <?php if ($revenue['top_products'] === []): ?>
+                                <p class="admin-empty">Chưa có sản phẩm được thanh toán.</p>
+                            <?php else: ?>
+                                <div class="admin-product-chart">
+                                    <?php foreach ($revenue['top_products'] as $product): ?>
+                                        <?php $productBarWidth = $maxProductRevenue > 0 ? ((float) $product['revenue'] / $maxProductRevenue) * 100 : 0; ?>
+                                        <div class="admin-product-chart-row">
+                                            <div class="admin-product-chart-heading">
+                                                <strong><?= htmlspecialchars($product['product_name'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                                <span><?= number_format((float) $product['revenue'], 0, ',', '.') ?> ₫</span>
+                                            </div>
+                                            <div class="admin-product-track" aria-hidden="true">
+                                                <span style="width: <?= $productBarWidth ?>%"></span>
+                                            </div>
+                                            <small>Đã bán <?= number_format((int) $product['quantity_sold']) ?> sản phẩm</small>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </section>
                     </div>
 
                     <div class="admin-dashboard-grid">

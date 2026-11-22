@@ -18,6 +18,7 @@ class OrderController
 
     public function index(): void
     {
+        $this->preventOrderPageCaching();
         $this->ensureCsrfToken();
         $orderModel = new OrderModel();
         $orders = $orderModel->getCustomerOrders($this->currentUserId(), $this->guestOrderCodes());
@@ -41,6 +42,7 @@ class OrderController
 
     public function detail(): void
     {
+        $this->preventOrderPageCaching();
         $this->ensureCsrfToken();
         $code = $_GET['code'] ?? '';
         if (!is_string($code) || !preg_match('/^DH[0-9]{14}[A-F0-9]{6}$/', $code)) {
@@ -222,9 +224,19 @@ class OrderController
 
     private function guestOrderCodes(): array
     {
+        if (isset($_SESSION['user'])) {
+            return [];
+        }
+
         $codes = $_SESSION['guest_order_codes'] ?? [];
 
         return is_array($codes) ? $codes : [];
+    }
+
+    private function preventOrderPageCaching(): void
+    {
+        header('Cache-Control: no-store, private, max-age=0');
+        header('Pragma: no-cache');
     }
 
     private function ensureCsrfToken(): void
