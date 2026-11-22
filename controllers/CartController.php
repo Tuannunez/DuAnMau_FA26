@@ -45,10 +45,20 @@ class CartController
             [$cartLines, $cartTotal] = $this->getCartLines();
             $paymentMethodInput = $_POST['payment_method'] ?? '';
             $paymentMethod = is_string($paymentMethodInput) ? $paymentMethodInput : '';
+            $promotionCodeInput = $_POST['promotion_code'] ?? '';
+            $promotionCode = is_string($promotionCodeInput) ? trim($promotionCodeInput) : '';
+            $promotion = $promotionCode === ''
+                ? null
+                : (new PromotionModel())->resolveCode($promotionCode, $cartTotal);
+            $discountAmount = $promotion['discount_amount'] ?? 0;
+            $checkoutTotal = round($cartTotal - $discountAmount, 2);
             if ($cartLines === []) {
                 $checkoutError = 'Giỏ hàng đang trống.';
             } elseif (array_filter($cartLines, static fn(array $line): bool => !$line['available'])) {
                 $checkoutError = 'Tồn kho đã thay đổi. Vui lòng cập nhật giỏ hàng trước khi đặt.';
+            } elseif ($promotionCode !== '' && $promotion === null) {
+                $customer = $this->checkoutCustomerFromPost();
+                $checkoutError = 'Mã giảm giá không hợp lệ, đã hết hạn hoặc đang tạm dừng.';
             } elseif (!in_array($paymentMethod, ['cod', 'bank_transfer'], true)) {
                 $customer = $this->checkoutCustomerFromPost();
                 $checkoutError = 'Vui lòng chọn phương thức thanh toán hợp lệ.';
@@ -66,12 +76,19 @@ class CartController
                             $cartLines
                         );
                         $userId = isset($_SESSION['user']['id']) ? (int) $_SESSION['user']['id'] : null;
-                        $orderCode = (new OrderModel())->createCustomerOrder($customer, $items, $userId, $paymentMethod);
+                        $orderCode = (new OrderModel())->createCustomerOrder(
+                            $customer,
+                            $items,
+                            $userId,
+                            $paymentMethod,
+                            $discountAmount,
+                            $promotion['code'] ?? ''
+                        );
                         unset($_SESSION['cart']);
                         $_SESSION['order_success'] = [
                             'code' => $orderCode,
                             'payment_method' => $paymentMethod,
-                            'total_amount' => $cartTotal,
+                            'total_amount' => $checkoutTotal,
                         ];
                         $guestOrderCodes = $_SESSION['guest_order_codes'] ?? [];
                         if (!is_array($guestOrderCodes)) {
@@ -94,6 +111,9 @@ class CartController
             $checkoutError = null;
             $customer = $this->checkoutCustomerFromSession();
             $paymentMethod = 'cod';
+            $promotionCode = '';
+            $discountAmount = 0;
+            $checkoutTotal = $cartTotal;
         }
         $cartAvailable = !array_filter($cartLines, static fn(array $line): bool => !$line['available']);
 

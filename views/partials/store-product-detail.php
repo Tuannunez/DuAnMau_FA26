@@ -111,4 +111,23 @@ $productImages = array_values(array_filter([
             <a class="shop-back-to-products" href="<?= BASE_URL ?>?action=products">← Tiếp tục xem sản phẩm</a>
         </div>
     </div>
+    <section class="shop-product-reviews" aria-labelledby="product-reviews-title">
+        <h2 id="product-reviews-title">Đánh giá từ khách hàng</h2>
+        <?php if ($approvedReviews === []): ?>
+            <p>Chưa có đánh giá nào cho sản phẩm này.</p>
+        <?php else: ?>
+            <?php foreach ($approvedReviews as $review): ?>
+                <article class="shop-product-review">
+                    <div>
+                        <strong><?= htmlspecialchars($review['customer_name'] ?: 'Khách hàng', ENT_QUOTES, 'UTF-8') ?></strong>
+                        <span class="shop-review-stars"><?= str_repeat('★', (int) $review['rating']) ?><?= str_repeat('☆', 5 - (int) $review['rating']) ?></span>
+                    </div>
+                    <?php if (!empty($review['content'])): ?>
+                        <p><?= nl2br(htmlspecialchars($review['content'], ENT_QUOTES, 'UTF-8')) ?></p>
+                    <?php endif; ?>
+                    <small><?= htmlspecialchars(date('d/m/Y', strtotime($review['created_at'])), ENT_QUOTES, 'UTF-8') ?></small>
+                </article>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </section>
 </section>

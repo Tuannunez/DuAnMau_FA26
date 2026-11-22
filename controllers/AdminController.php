@@ -56,6 +56,24 @@ class AdminController
         $orderStatuses = OrderModel::statuses();
         $paymentStatuses = OrderModel::paymentStatuses();
         $orderResult = null;
+        $promotions = [];
+        $promotionError = null;
+        $promotionResult = null;
+        $promotionForm = [
+            'code' => '',
+            'name' => '',
+            'description' => '',
+            'discount_type' => 'percentage',
+            'discount_value' => '',
+            'starts_at' => '',
+            'ends_at' => '',
+            'status' => '1',
+        ];
+        $editingPromotionId = null;
+        $showPromotionForm = false;
+        $reviews = [];
+        $reviewError = null;
+        $reviewResult = null;
 
         if ($section === 'products') {
             $productModel = new ProductModel();
@@ -296,6 +314,160 @@ class AdminController
             }
         }
 
+        if ($section === 'promotions') {
+            $promotionModel = new PromotionModel();
+
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $this->validateCsrfToken();
+                $formAction = $_POST['form_action'] ?? '';
+
+                if ($formAction === 'save') {
+                    $showPromotionForm = true;
+                    $promotionIdInput = $_POST['promotion_id'] ?? '';
+                    $editingPromotionId = $promotionIdInput === ''
+                        ? null
+                        : filter_var($promotionIdInput, FILTER_VALIDATE_INT);
+                    foreach (array_keys($promotionForm) as $key) {
+                        $value = $_POST[$key] ?? '';
+                        $promotionForm[$key] = is_string($value) ? trim($value) : '';
+                    }
+
+                    if ($editingPromotionId === false || ($editingPromotionId !== null && $editingPromotionId < 1)) {
+                        $promotionError = 'Mã khuyến mãi không hợp lệ.';
+                    } else {
+                        $promotionError = $this->validatePromotionForm($promotionForm);
+                    }
+                    if ($promotionError === null) {
+                        if ($editingPromotionId !== null && $promotionModel->find($editingPromotionId) === null) {
+                            $promotionError = 'Không tìm thấy khuyến mãi cần cập nhật.';
+                        }
+                    }
+                    if ($promotionError === null) {
+                        try {
+                            $data = $this->promotionDataFromForm($promotionForm);
+                            if ($editingPromotionId === null) {
+                                $promotionModel->create($data);
+                                $result = 'created';
+                            } else {
+                                $promotionModel->update($editingPromotionId, $data);
+                                $result = 'updated';
+                            }
+                            header('Location: ' . BASE_URL . '?action=admin&section=promotions&result=' . $result);
+                            exit;
+                        } catch (PDOException $exception) {
+                            error_log('Admin promotion save database error: ' . $exception->getMessage());
+                            $promotionError = $exception->getCode() === '23000'
+                                ? 'Mã khuyến mãi đã tồn tại.'
+                                : 'Không thể lưu khuyến mãi. Lỗi cơ sở dữ liệu: ' . $exception->getMessage();
+                        }
+                    }
+                } elseif ($formAction === 'delete') {
+                    $promotionId = filter_var($_POST['promotion_id'] ?? null, FILTER_VALIDATE_INT);
+                    if ($promotionId === false || $promotionId === null || $promotionId < 1) {
+                        $promotionError = 'Mã khuyến mãi không hợp lệ.';
+                    } else {
+                        $promotionModel->delete($promotionId);
+                        header('Location: ' . BASE_URL . '?action=admin&section=promotions&result=deleted');
+                        exit;
+                    }
+                } elseif ($formAction === 'toggle') {
+                    $promotionId = filter_var($_POST['promotion_id'] ?? null, FILTER_VALIDATE_INT);
+                    if ($promotionId === false || $promotionId === null || $promotionId < 1) {
+                        $promotionError = 'Mã khuyến mãi không hợp lệ.';
+                    } else {
+                        $promotionModel->toggleStatus($promotionId);
+                        header('Location: ' . BASE_URL . '?action=admin&section=promotions&result=updated');
+                        exit;
+                    }
+                } else {
+                    http_response_code(400);
+                    exit('Thao tác khuyến mãi không hợp lệ.');
+                }
+            } else {
+                $promotionIdInput = $_GET['promotion_id'] ?? null;
+                if ($promotionIdInput !== null) {
+                    $showPromotionForm = true;
+                    $editingPromotionId = filter_var($promotionIdInput, FILTER_VALIDATE_INT);
+                    if ($editingPromotionId === false || $editingPromotionId < 1) {
+                        http_response_code(400);
+                        exit('Mã khuyến mãi không hợp lệ.');
+                    }
+                    $row = $promotionModel->find($editingPromotionId);
+                    if ($row === null) {
+                        http_response_code(404);
+                        exit('Không tìm thấy khuyến mãi.');
+                    }
+                    $promotionForm = [
+                        'code' => $row['code'],
+                        'name' => $row['name'],
+                        'description' => $row['description'] ?? '',
+                        'discount_type' => $row['discount_type'],
+                        'discount_value' => (string) $row['discount_value'],
+                        'starts_at' => $row['starts_at'] ? date('Y-m-d\TH:i', strtotime($row['starts_at'])) : '',
+                        'ends_at' => $row['ends_at'] ? date('Y-m-d\TH:i', strtotime($row['ends_at'])) : '',
+                        'status' => (string) $row['status'],
+                    ];
+                } elseif (($_GET['form'] ?? '') === 'create') {
+                    $showPromotionForm = true;
+                }
+            }
+
+            if (!$showPromotionForm) {
+                $promotions = $promotionModel->getAll();
+            }
+            $promotionResultMessages = [
+                'created' => 'Đã thêm khuyến mãi.',
+                'updated' => 'Đã cập nhật khuyến mãi.',
+                'deleted' => 'Đã xóa khuyến mãi.',
+            ];
+            $promotionResultInput = $_GET['result'] ?? '';
+            $promotionResult = is_string($promotionResultInput)
+                ? ($promotionResultMessages[$promotionResultInput] ?? null)
+                : null;
+        }
+
+        if ($section === 'reviews') {
+            $reviewModel = new ReviewModel();
+
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $this->validateCsrfToken();
+                $reviewId = filter_var($_POST['review_id'] ?? null, FILTER_VALIDATE_INT);
+                if ($reviewId === false || $reviewId === null || $reviewId < 1) {
+                    $reviewError = 'Mã đánh giá không hợp lệ.';
+                } else {
+                    $formAction = $_POST['form_action'] ?? '';
+                    if ($formAction === 'approve') {
+                        $reviewModel->setStatus($reviewId, 'approved');
+                        header('Location: ' . BASE_URL . '?action=admin&section=reviews&result=approved');
+                        exit;
+                    }
+                    if ($formAction === 'hide') {
+                        $reviewModel->setStatus($reviewId, 'hidden');
+                        header('Location: ' . BASE_URL . '?action=admin&section=reviews&result=hidden');
+                        exit;
+                    }
+                    if ($formAction === 'delete') {
+                        $reviewModel->delete($reviewId);
+                        header('Location: ' . BASE_URL . '?action=admin&section=reviews&result=deleted');
+                        exit;
+                    }
+                    http_response_code(400);
+                    exit('Thao tác đánh giá không hợp lệ.');
+                }
+            }
+
+            $reviews = $reviewModel->getAll();
+            $reviewResultMessages = [
+                'approved' => 'Đã duyệt đánh giá.',
+                'hidden' => 'Đã ẩn đánh giá.',
+                'deleted' => 'Đã xóa đánh giá.',
+            ];
+            $reviewResultInput = $_GET['result'] ?? '';
+            $reviewResult = is_string($reviewResultInput)
+                ? ($reviewResultMessages[$reviewResultInput] ?? null)
+                : null;
+        }
+
         if ($section === 'orders') {
             $orderModel = new OrderModel();
             $orderIdInput = $_GET['order_id'] ?? null;
@@ -375,8 +547,55 @@ class AdminController
         } elseif ($section === 'orders' && $order !== null) {
             $title = 'Chi tiết đơn hàng';
         }
+        if ($section === 'promotions' && $showPromotionForm) {
+            $title = $editingPromotionId === null ? 'Thêm khuyến mãi' : 'Sửa khuyến mãi';
+        }
 
         require PATH_VIEW . 'admin.php';
+    }
+
+    private function validatePromotionForm(array $promotion): ?string
+    {
+        if ($promotion['code'] === '' || $promotion['name'] === '') {
+            return 'Vui lòng nhập mã và tên khuyến mãi.';
+        }
+        if (!preg_match('/^[A-Z0-9_-]{2,30}$/', strtoupper($promotion['code']))) {
+            return 'Mã khuyến mãi chỉ gồm 2-30 ký tự chữ, số, gạch ngang hoặc gạch dưới.';
+        }
+        if (!in_array($promotion['discount_type'], ['percentage', 'fixed'], true)) {
+            return 'Loại giảm giá không hợp lệ.';
+        }
+        $value = filter_var($promotion['discount_value'], FILTER_VALIDATE_FLOAT);
+        if ($value === false || $value <= 0) {
+            return 'Giá trị giảm giá phải lớn hơn 0.';
+        }
+        if ($promotion['discount_type'] === 'percentage' && $value > 100) {
+            return 'Giảm theo phần trăm không được vượt quá 100%.';
+        }
+        if (!in_array($promotion['status'], ['0', '1'], true)) {
+            return 'Trạng thái khuyến mãi không hợp lệ.';
+        }
+        if ($promotion['starts_at'] !== '' && strtotime($promotion['starts_at']) === false) {
+            return 'Thời gian bắt đầu không hợp lệ.';
+        }
+        if ($promotion['ends_at'] !== '' && strtotime($promotion['ends_at']) === false) {
+            return 'Thời gian kết thúc không hợp lệ.';
+        }
+        if ($promotion['starts_at'] !== '' && $promotion['ends_at'] !== ''
+            && strtotime($promotion['ends_at']) < strtotime($promotion['starts_at'])) {
+            return 'Thời gian kết thúc phải sau thời gian bắt đầu.';
+        }
+        return null;
+    }
+
+    private function promotionDataFromForm(array $promotion): array
+    {
+        $promotion['code'] = strtoupper($promotion['code']);
+        $promotion['discount_value'] = (float) $promotion['discount_value'];
+        $promotion['starts_at'] = $promotion['starts_at'] !== '' ? date('Y-m-d H:i:s', strtotime($promotion['starts_at'])) : null;
+        $promotion['ends_at'] = $promotion['ends_at'] !== '' ? date('Y-m-d H:i:s', strtotime($promotion['ends_at'])) : null;
+        $promotion['status'] = (int) $promotion['status'];
+        return $promotion;
     }
 
     private function csrfToken(): string

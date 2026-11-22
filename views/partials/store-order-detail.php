@@ -1,4 +1,10 @@
 <section class="shop-orders-page" aria-labelledby="customer-order-title">
+    <?php if (!empty($reviewNotice)): ?>
+        <p class="shop-form-message is-success" role="status"><?= htmlspecialchars($reviewNotice, ENT_QUOTES, 'UTF-8') ?></p>
+    <?php endif; ?>
+    <?php if (!empty($reviewError)): ?>
+        <p class="shop-form-message is-error" role="alert"><?= htmlspecialchars($reviewError, ENT_QUOTES, 'UTF-8') ?></p>
+    <?php endif; ?>
     <div class="shop-orders-heading">
         <div>
             <span class="shop-section-kicker">CHI TIẾT ĐƠN HÀNG</span>
@@ -63,6 +69,30 @@
                             <span>Size: <?= htmlspecialchars($item['size'], ENT_QUOTES, 'UTF-8') ?></span>
                         <?php endif; ?>
                         <span>SKU: <?= htmlspecialchars($item['sku'] ?? '—', ENT_QUOTES, 'UTF-8') ?> · Số lượng: <?= (int) $item['quantity'] ?></span>
+                        <?php if ($order['status'] === 'completed' && $canReviewOrder): ?>
+                            <?php if (!empty($reviewStates[(int) $item['product_id']])): ?>
+                                <span class="shop-review-complete">Bạn đã gửi đánh giá cho sản phẩm này.</span>
+                            <?php else: ?>
+                                <form class="shop-review-form" method="post" action="<?= BASE_URL ?>?action=review_create">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                                    <input type="hidden" name="order_code" value="<?= htmlspecialchars($order['order_code'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <input type="hidden" name="product_id" value="<?= (int) $item['product_id'] ?>">
+                                    <label>Số sao
+                                        <select name="rating" required>
+                                            <?php for ($rating = 5; $rating >= 1; $rating--): ?>
+                                                <option value="<?= $rating ?>"><?= $rating ?> sao</option>
+                                            <?php endfor; ?>
+                                        </select>
+                                    </label>
+                                    <label>Nội dung đánh giá
+                                        <textarea name="content" rows="2" maxlength="1000" placeholder="Chia sẻ trải nghiệm của bạn"></textarea>
+                                    </label>
+                                    <button type="submit">Gửi đánh giá</button>
+                                </form>
+                            <?php endif; ?>
+                        <?php elseif ($order['status'] !== 'completed'): ?>
+                            <span class="shop-review-locked">Chỉ đánh giá sau khi đơn hàng giao thành công.</span>
+                        <?php endif; ?>
                     </div>
                     <strong><?= number_format((float) $item['unit_price'] * (int) $item['quantity'], 0, ',', '.') ?> ₫</strong>
                 </div>

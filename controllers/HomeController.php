@@ -54,6 +54,7 @@ class HomeController
         }
         $csrfToken = $_SESSION['csrf_token'];
         $isProductDetail = true;
+        $approvedReviews = (new ReviewModel())->getApprovedForProduct($productId);
         $title = $product['name'];
         require PATH_VIEW_MAIN;
     }

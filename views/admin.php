@@ -29,9 +29,6 @@
                         <?= $section === $key ? 'aria-current="page"' : '' ?>>
                         <span class="admin-nav-icon" aria-hidden="true"><?= htmlspecialchars($item['icon'], ENT_QUOTES, 'UTF-8') ?></span>
                         <span><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                        <?php if (in_array($key, ['promotions', 'reviews'], true)): ?>
-                            <span class="admin-nav-soon">Sắp có</span>
-                        <?php endif; ?>
                     </a>
                 <?php endforeach; ?>
             </nav>
@@ -153,6 +150,8 @@
                                                 'products' => 'Quản lý sản phẩm',
                                                 'categories' => 'Quản lý danh mục',
                                                 'orders' => 'Theo dõi đơn hàng',
+                                                'promotions' => 'Tạo và quản lý mã giảm',
+                                                'reviews' => 'Duyệt đánh giá khách hàng',
                                                 default => 'Chưa có dữ liệu',
                                             } ?>
                                         </small>
@@ -211,6 +210,10 @@
                     <?php else: ?>
                         <?php require PATH_VIEW . 'partials/admin-orders.php'; ?>
                     <?php endif; ?>
+                <?php elseif ($section === 'promotions'): ?>
+                    <?php require PATH_VIEW . 'partials/admin-promotions.php'; ?>
+                <?php elseif ($section === 'reviews'): ?>
+                    <?php require PATH_VIEW . 'partials/admin-reviews.php'; ?>
                 <?php elseif ($section === 'settings'): ?>
                     <section class="admin-panel admin-settings-panel" aria-labelledby="settings-title">
                         <div class="admin-panel-heading">

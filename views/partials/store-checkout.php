@@ -73,6 +73,18 @@
                 <label for="checkout-note">Ghi chú (không bắt buộc)</label>
                 <textarea id="checkout-note" name="note" rows="3"><?= htmlspecialchars($customer['note'], ENT_QUOTES, 'UTF-8') ?></textarea>
 
+                <div class="shop-promotion-field">
+                    <label for="checkout-promotion">Mã giảm giá</label>
+                    <input
+                        id="checkout-promotion"
+                        name="promotion_code"
+                        type="text"
+                        maxlength="30"
+                        value="<?= htmlspecialchars($promotionCode, ENT_QUOTES, 'UTF-8') ?>"
+                        placeholder="Nhập mã khuyến mãi">
+                    <small>Mã hợp lệ sẽ được áp dụng khi đặt hàng.</small>
+                </div>
+
                 <fieldset class="shop-payment-methods">
                     <legend>Phương thức thanh toán</legend>
                     <label class="shop-payment-option">
@@ -128,7 +140,11 @@
                         <strong class="shop-checkout-product-total"><?= number_format((float) $line['line_total'], 0, ',', '.') ?> ₫</strong>
                     </div>
                 <?php endforeach; ?>
-                <p class="shop-cart-summary-total"><span>Tổng cộng</span><strong><?= number_format($cartTotal, 0, ',', '.') ?> ₫</strong></p>
+                <?php if ($discountAmount > 0): ?>
+                    <p class="shop-cart-summary-row"><span>Tạm tính</span><strong><?= number_format($cartTotal, 0, ',', '.') ?> ₫</strong></p>
+                    <p class="shop-cart-summary-row shop-cart-summary-discount"><span>Giảm giá<?= $promotionCode !== '' ? ' (' . htmlspecialchars(strtoupper($promotionCode), ENT_QUOTES, 'UTF-8') . ')' : '' ?></span><strong>-<?= number_format($discountAmount, 0, ',', '.') ?> ₫</strong></p>
+                <?php endif; ?>
+                <p class="shop-cart-summary-total"><span>Tổng cộng</span><strong><?= number_format($checkoutTotal, 0, ',', '.') ?> ₫</strong></p>
             </aside>
         </div>
     <?php endif; ?>

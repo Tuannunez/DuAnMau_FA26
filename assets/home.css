@@ -345,6 +345,24 @@ body {
     font-size: 15px !important;
 }
 
+.shop-promotion-field {
+    display: grid;
+    gap: 6px;
+}
+
+.shop-promotion-field small,
+.shop-cart-summary-discount {
+    color: #277347;
+}
+
+.shop-cart-summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 8px 0;
+    font-size: 13px;
+}
+
 .shop-cart-summary .shop-purchase-button {
     width: 100%;
     margin-top: 8px;
@@ -724,6 +742,88 @@ body {
 
 .shop-customer-order-item > strong {
     white-space: nowrap;
+}
+
+.shop-review-form {
+    display: grid;
+    width: min(420px, 100%);
+    gap: 7px;
+    margin-top: 9px;
+}
+
+.shop-review-form label {
+    display: grid;
+    gap: 4px;
+    color: #42444a;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.shop-review-form select,
+.shop-review-form textarea {
+    width: 100%;
+    border: 1px solid #dedfe2;
+    border-radius: 5px;
+    padding: 8px 10px;
+    font: inherit;
+}
+
+.shop-review-form button {
+    width: fit-content;
+    min-height: 34px;
+    border: 0;
+    border-radius: 5px;
+    color: #fff;
+    background: var(--shop-red);
+    padding: 0 12px;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.shop-review-complete,
+.shop-review-locked {
+    color: #277347;
+    font-size: 12px;
+}
+
+.shop-review-locked {
+    color: #8a671b;
+}
+
+.shop-product-reviews {
+    margin-top: 28px;
+    padding: 22px;
+    border: 1px solid var(--shop-line);
+    border-radius: 8px;
+}
+
+.shop-product-reviews h2 {
+    margin: 0 0 16px;
+    font-size: 18px;
+}
+
+.shop-product-review {
+    padding: 14px 0;
+    border-top: 1px solid var(--shop-line);
+}
+
+.shop-product-review > div {
+    display: flex;
+    justify-content: space-between;
+}
+
+.shop-product-review p {
+    margin: 8px 0;
+}
+
+.shop-product-review small {
+    color: var(--shop-muted);
+}
+
+.shop-review-stars {
+    color: #d6a53c;
+    letter-spacing: 1px;
 }
 
 .shop-order-tracking-bottom {

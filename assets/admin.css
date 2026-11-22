@@ -573,6 +573,44 @@
     gap: 9px;
 }
 
+.admin-product-actions form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.admin-product-edit,
+.admin-product-delete {
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 650;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.admin-product-edit {
+    color: var(--admin-red);
+}
+
+.admin-product-delete {
+    color: #a24d3c;
+}
+
+.admin-review-stars {
+    color: #d6a53c;
+    letter-spacing: 1px;
+}
+
+.admin-review-stars span {
+    color: #dfe0e4;
+}
+
+.admin-review-content {
+    max-width: 260px;
+    white-space: normal;
+}
+
 .admin-button {
     display: inline-flex;
     min-height: 36px;

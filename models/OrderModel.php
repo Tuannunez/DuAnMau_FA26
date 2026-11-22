@@ -93,7 +93,7 @@ class OrderModel extends BaseModel
         $parameters['order_code'] = $orderCode;
 
         $statement = $this->pdo->prepare(
-            'SELECT id, order_code, recipient_name, recipient_email, recipient_phone,
+            '            SELECT id, user_id, order_code, recipient_name, recipient_email, recipient_phone,
                     shipping_address, subtotal, discount_amount, total_amount, payment_method,
                     payment_status, status, note, created_at, updated_at
              FROM orders
@@ -151,7 +151,14 @@ class OrderModel extends BaseModel
         }
     }
 
-    public function createCustomerOrder(array $customer, array $items, ?int $userId, string $paymentMethod): string
+    public function createCustomerOrder(
+        array $customer,
+        array $items,
+        ?int $userId,
+        string $paymentMethod,
+        float $discountAmount = 0,
+        string $promotionCode = ''
+    ): string
     {
         if ($items === []) {
             throw new InvalidArgumentException('Giỏ hàng đang trống.');
@@ -210,7 +217,7 @@ class OrderModel extends BaseModel
                      payment_status, status, note)
                  VALUES
                     (:user_id, :order_code, :recipient_name, :recipient_email, :recipient_phone,
-                     :shipping_address, :subtotal, 0, :total_amount, :payment_method,
+                     :shipping_address, :subtotal, :discount_amount, :total_amount, :payment_method,
                      :payment_status, :status, :note)'
             );
             $orderStatement->execute([
@@ -221,7 +228,8 @@ class OrderModel extends BaseModel
                 'recipient_phone' => $customer['phone'],
                 'shipping_address' => $customer['address'],
                 'subtotal' => $subtotal,
-                'total_amount' => $subtotal,
+                'discount_amount' => max(0, min($discountAmount, $subtotal)),
+                'total_amount' => max(0, round($subtotal - max(0, min($discountAmount, $subtotal)), 2)),
                 'payment_method' => $paymentMethod,
                 'payment_status' => 'unpaid',
                 'status' => 'pending',

@@ -13,6 +13,7 @@ match ($action) {
     'orders' => (new OrderController())->index(),
     'order' => (new OrderController())->detail(),
     'order_delete' => (new OrderController())->delete(),
+    'review_create' => (new OrderController())->review(),
     'login' => (new AuthController())->login(),
     'register' => (new AuthController())->register(),
     'logout' => (new AuthController())->logout(),

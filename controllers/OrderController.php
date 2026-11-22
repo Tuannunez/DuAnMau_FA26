@@ -60,6 +60,24 @@ class OrderController
         }
 
         $orderItems = $orderModel->getItems((int) $order['id']);
+        $reviewStates = [];
+        $currentUserId = $this->currentUserId();
+        $canReviewOrder = $order['status'] === 'completed'
+            && $currentUserId !== null
+            && (int) ($order['user_id'] ?? 0) === $currentUserId;
+        if ($canReviewOrder) {
+            $reviewModel = new ReviewModel();
+            foreach ($orderItems as $item) {
+                $reviewStates[(int) $item['product_id']] = $reviewModel->existsForOrderItem(
+                    (int) $order['id'],
+                    $currentUserId,
+                    (int) $item['product_id']
+                );
+            }
+        }
+        $reviewNotice = $_SESSION['review_notice'] ?? null;
+        $reviewError = $_SESSION['review_error'] ?? null;
+        unset($_SESSION['review_notice'], $_SESSION['review_error']);
         $csrfToken = $_SESSION['csrf_token'];
         $canDeleteOrder = in_array($order['status'], ['completed', 'cancelled'], true);
         $orderStatusLabels = self::ORDER_STATUS_LABELS;
@@ -74,6 +92,80 @@ class OrderController
         $isCatalogPage = true;
         $isOrdersPage = true;
         require PATH_VIEW_MAIN;
+    }
+
+    public function review(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            exit('Phương thức không được hỗ trợ.');
+        }
+        $this->ensureCsrfToken();
+        $token = $_POST['csrf_token'] ?? '';
+        if (!is_string($token) || !hash_equals($_SESSION['csrf_token'], $token)) {
+            http_response_code(403);
+            exit('Yêu cầu không hợp lệ.');
+        }
+
+        $currentUserId = $this->currentUserId();
+        if ($currentUserId === null) {
+            $_SESSION['review_error'] = 'Vui lòng đăng nhập để đánh giá sản phẩm đã mua.';
+            header('Location: ' . BASE_URL);
+            exit;
+        }
+
+        $orderCode = $_POST['order_code'] ?? '';
+        $productId = filter_var($_POST['product_id'] ?? null, FILTER_VALIDATE_INT);
+        $rating = filter_var($_POST['rating'] ?? null, FILTER_VALIDATE_INT);
+        $content = $_POST['content'] ?? '';
+        if (!is_string($orderCode) || !preg_match('/^DH[0-9]{14}[A-F0-9]{6}$/', $orderCode)
+            || $productId === false || $productId === null || $productId < 1
+            || $rating === false || $rating === null
+            || !is_string($content)) {
+            http_response_code(400);
+            exit('Thông tin đánh giá không hợp lệ.');
+        }
+
+        $orderModel = new OrderModel();
+        $order = $orderModel->findCustomerOrder($orderCode, $currentUserId, []);
+        $verified = $order !== null
+            && $order['status'] === 'completed'
+            && (int) ($order['user_id'] ?? 0) === $currentUserId;
+        if (!$verified) {
+            http_response_code(403);
+            exit('Chỉ khách hàng đã mua và nhận thành công mới được đánh giá.');
+        }
+
+        $belongsToOrder = false;
+        foreach ($orderModel->getItems((int) $order['id']) as $item) {
+            if ((int) $item['product_id'] === $productId) {
+                $belongsToOrder = true;
+                break;
+            }
+        }
+        if (!$belongsToOrder) {
+            http_response_code(403);
+            exit('Sản phẩm này không thuộc đơn hàng đã hoàn thành.');
+        }
+
+        try {
+            (new ReviewModel())->createVerified(
+                (int) $order['id'],
+                $currentUserId,
+                $productId,
+                $rating,
+                trim($content)
+            );
+            $_SESSION['review_notice'] = 'Đánh giá của bạn đã được gửi và đang chờ duyệt.';
+        } catch (InvalidArgumentException | RuntimeException $exception) {
+            $_SESSION['review_error'] = $exception->getMessage();
+        } catch (PDOException $exception) {
+            error_log('Customer review database error: ' . $exception->getMessage());
+            $_SESSION['review_error'] = 'Chưa thể lưu đánh giá. Vui lòng thử lại.';
+        }
+
+        header('Location: ' . BASE_URL . '?action=order&code=' . urlencode($orderCode));
+        exit;
     }
 
     public function delete(): void
